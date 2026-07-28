@@ -18,6 +18,24 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 const TABLE = 'hangdle_scores';
 const COLUMNS = 'puzzle,name,won,body,rope,guesses';
 
+/**
+ * Why the last call failed, in a form worth showing a human. Kept here because
+ * the leaderboard is configured by editing a file and deploying — there is no
+ * console to read when it goes wrong, so the page has to say what happened.
+ */
+let failure = null;
+
+export function lastError() {
+  return failure;
+}
+
+function describe(status) {
+  if (status === 401 || status === 403) return 'key rejected';
+  if (status === 404) return 'table not found';
+  if (status === 400) return 'request rejected';
+  return `HTTP ${status}`;
+}
+
 export function isConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
@@ -59,9 +77,12 @@ export async function submitScore(entry) {
       }),
     });
 
-    if (response.status === 409) return 'duplicate';
-    return response.ok ? 'saved' : 'offline';
+    if (response.status === 409) { failure = null; return 'duplicate'; }
+    if (!response.ok) { failure = describe(response.status); return 'offline'; }
+    failure = null;
+    return 'saved';
   } catch {
+    failure = 'no connection';
     return 'offline';
   }
 }
@@ -78,11 +99,12 @@ export async function fetchScores({ limit = 500 } = {}) {
   try {
     const query = `${TABLE}?select=${COLUMNS}&order=puzzle.desc&limit=${limit}`;
     const response = await fetch(endpoint(query), { headers: headers() });
-    if (!response.ok) return null;
+    if (!response.ok) { failure = describe(response.status); return null; }
 
     const rows = await response.json();
-    if (!Array.isArray(rows)) return null;
+    if (!Array.isArray(rows)) { failure = 'unexpected response'; return null; }
 
+    failure = null;
     return rows.map((row) => ({
       number: Number(row.puzzle),
       name: String(row.name),
@@ -92,6 +114,7 @@ export async function fetchScores({ limit = 500 } = {}) {
       guesses: Number(row.guesses),
     }));
   } catch {
+    failure = 'no connection';
     return null;
   }
 }
