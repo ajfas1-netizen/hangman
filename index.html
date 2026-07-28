@@ -8,16 +8,18 @@
 <title>Cinch</title>
 <link rel="stylesheet" href="styles.css">
 <script>
-  /* Runs before first paint so the page never flashes the wrong theme. An
-     explicit choice wins; otherwise follow the system. */
+  /* Runs before first paint so the page never flashes the wrong theme.
+     Precedence: the player's own choice, then a theme the host already stamped
+     on <html> (embedders that manage theme themselves), then the system. */
   (function () {
-    var root = document.documentElement, theme = 'dark';
-    try {
-      var stored = localStorage.getItem('cinch:theme');
-      theme = stored === 'light' || stored === 'dark'
-        ? stored
-        : (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    } catch (e) { /* private window — stay dark */ }
+    var root = document.documentElement, host = root.dataset.theme, theme;
+    var stored = null;
+    try { stored = localStorage.getItem('cinch:theme'); } catch (e) { /* private window */ }
+
+    if (stored === 'light' || stored === 'dark') theme = stored;
+    else if (host === 'light' || host === 'dark') theme = host;
+    else theme = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
     root.dataset.theme = theme;
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = theme === 'light' ? '#f5f1e9' : '#0d0f13';
