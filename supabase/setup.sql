@@ -40,6 +40,15 @@ create policy "anyone can add a hangdle score"
   to anon, authenticated
   with check (true);
 
+-- PostgREST serves the REST API from a cached copy of the schema. A table it
+-- has not reloaded since is a 404 — indistinguishable, from the client, from a
+-- table that was never created. Supabase usually reloads on its own; this makes
+-- it certain.
+notify pgrst, 'reload schema';
+
+-- Proof it worked: this should list hangdle_scores.
+select tablename from pg_tables where schemaname = 'public' order by tablename;
+
 -- No update or delete policy exists, so with RLS on, neither is possible for
 -- the anon role. Removing a bogus entry is a job for the SQL editor:
 --
