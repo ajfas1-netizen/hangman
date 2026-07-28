@@ -139,3 +139,37 @@ export function resetStats() {
   write(STATS_KEY, EMPTY_STATS);
   return { ...EMPTY_STATS };
 }
+
+/* ---------------------------------------------------------------- leaderboard */
+
+const BOARD_KEY = 'hangdle:board';
+const NAME_KEY = 'hangdle:name';
+
+export function playerName() {
+  return readRaw(NAME_KEY) ?? '';
+}
+
+export function setPlayerName(name) {
+  writeRaw(NAME_KEY, name);
+}
+
+/** { [puzzleNumber]: { [lowercased name]: entry } } */
+export function loadBoard() {
+  const board = read(BOARD_KEY);
+  return board && typeof board === 'object' ? board : {};
+}
+
+/** One entry per name per puzzle — a re-paste corrects the old one. */
+export function addToBoard(entry) {
+  const board = loadBoard();
+  const day = board[entry.number] ?? {};
+  day[entry.name.toLowerCase()] = entry;
+  board[entry.number] = day;
+  write(BOARD_KEY, board);
+  return board;
+}
+
+export function clearBoard() {
+  write(BOARD_KEY, {});
+  return {};
+}

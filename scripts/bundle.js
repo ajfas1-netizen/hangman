@@ -14,7 +14,7 @@
  * top-level name this will break loudly at parse time, which is the failure mode
  * you want.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -28,8 +28,20 @@ const ORDER = [
   'src/daily.js',
   'src/storage.js',
   'src/share.js',
+  'src/score.js',
   'src/main.js',
 ];
+
+/*
+ * Forgetting to list a module here silently drops it: the real page still works
+ * because its imports resolve, while the bundle ships with the names undefined
+ * and dies on first use. Refuse to build instead.
+ */
+const listed = new Set(ORDER.map((f) => f.replace('src/', '')));
+const missing = readdirSync(join(root, 'src')).filter((f) => f.endsWith('.js') && !listed.has(f));
+if (missing.length) {
+  throw new Error(`src/${missing.join(', src/')} not listed in ORDER — add it in dependency order`);
+}
 
 /** Drop the module plumbing; everything ends up in one scope. */
 function flatten(source) {

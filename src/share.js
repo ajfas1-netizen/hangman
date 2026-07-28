@@ -21,7 +21,7 @@ export function shareGrid(state) {
   return rows.join('\n');
 }
 
-export function shareText(state, { number, url = '' } = {}) {
+export function shareText(state, { number, url = '', code = null } = {}) {
   const title = number ? `Hangdle #${number}` : 'Hangdle';
   const outcome = state.status === WON ? 'survived' : state.status === LOST ? 'hanged' : 'unfinished';
   const { maxMisses, maxNears } = state.limits;
@@ -31,6 +31,9 @@ export function shareText(state, { number, url = '' } = {}) {
     '',
     shareGrid(state),
   ];
+  // The result code rides along so a friend can drop the whole message into
+  // their leaderboard — there is no server to post it to.
+  if (code) lines.push('', code);
   if (url) lines.push('', url);
   return lines.join('\n');
 }

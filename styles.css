@@ -775,6 +775,59 @@ body > *:not(.grain) { position: relative; z-index: 1; }
 .tracks.limitless .track { grid-template-columns: 2.9rem auto 1fr; }
 .tracks.limitless .track-count { justify-self: start; }
 
+/* ---------------------------------------------------------------- leaderboard */
+
+.name-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+#name-input, #paste-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ink-850);
+  box-shadow: var(--well);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+}
+#paste-input { width: 100%; resize: vertical; margin-bottom: 0.6rem; font-size: 0.82rem; }
+#name-input:focus, #paste-input:focus { outline: 2px solid var(--rope); outline-offset: 1px; }
+
+.hint { margin: 0.35rem 0 0; font-size: 0.75rem; color: var(--muted); }
+.paste-note { font-size: 0.8rem; color: var(--muted); }
+.paste-note.bad { color: var(--danger); }
+.paste-note.good { color: var(--hit); }
+
+.board-table { display: grid; gap: 0.2rem; font-size: 0.85rem; }
+
+.board-row {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--ink-850);
+}
+.board-row.head {
+  background: transparent;
+  padding-block: 0.2rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.board-row.you { background: var(--hit-deep); }
+.board-row .rank { color: var(--muted); font-variant-numeric: tabular-nums; }
+.board-row .who { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-row .num { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.board-row .out { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.board-row .out.lost { color: var(--danger); }
+.board-row .out.survived { color: var(--hit); }
+.board-empty { padding: 0.8rem 0; color: var(--muted); font-size: 0.85rem; }
+
 /* ---------------------------------------------------------------- stats */
 
 .stat-row { display: flex; gap: 1.4rem; margin: 1rem 0 0.4rem; flex-wrap: wrap; }

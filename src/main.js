@@ -11,7 +11,11 @@ import {
   MAX_MISSES, MAX_NEARS, SOLVE_PENALTY, BODY_PARTS,
 } from './engine.js';
 import { wordForDate, randomWord } from './daily.js';
-import { loadDaily, saveDaily, loadStats, recordResult, resetStats, readRaw, writeRaw } from './storage.js';
+import {
+  loadDaily, saveDaily, loadStats, recordResult, resetStats, readRaw, writeRaw,
+  playerName, setPlayerName, loadBoard, addToBoard, clearBoard,
+} from './storage.js';
+import { scoreOf, encodeResult, decodeResult, rank, tally, NAME_PATTERN } from './score.js';
 import { shareGrid, shareText, copyToClipboard } from './share.js';
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -439,7 +443,10 @@ function finishIfOver() {
   if (g.status === PLAYING || view.ended) return;
 
   view.ended = true;
-  if (view.mode === 'daily') recordResult(view.meta.number, g);
+  if (view.mode === 'daily') {
+    recordResult(view.meta.number, g);
+    recordOwnEntry();
+  }
   render();
   setTimeout(() => showEnd({ replay: false }), 700);
 }
@@ -574,12 +581,132 @@ el('solve-dialog').addEventListener('close', (e) => {
 });
 
 el('share-btn').addEventListener('click', async () => {
-  const text = shareText(view.game, { number: view.meta.number, url: location.href.split('?')[0] });
+  const text = shareText(view.game, {
+    number: view.meta.number,
+    url: location.href.split('?')[0],
+    code: ownCode(),
+  });
   const btn = el('share-btn');
   const ok = await copyToClipboard(text);
   const original = btn.textContent;
   btn.textContent = ok ? 'Copied' : 'Copy failed';
   setTimeout(() => { btn.textContent = original; }, 1400);
+});
+
+/* ---------------------------------------------------------------- leaderboard */
+
+/** The code for your own finished daily, or null if it isn't shareable yet. */
+function ownCode() {
+  const name = playerName();
+  if (!name || view.mode !== 'daily' || view.game.status === PLAYING) return null;
+  return encodeResult({ number: view.meta.number, name, score: scoreOf(view.game) });
+}
+
+/** Your own daily result belongs on your board without pasting anything. */
+function recordOwnEntry() {
+  const name = playerName();
+  if (!name || view.mode !== 'daily' || view.game.status === PLAYING) return;
+  addToBoard({ number: view.meta.number, name, ...scoreOf(view.game) });
+}
+
+function boardRow(cells, className = '') {
+  const row = document.createElement('div');
+  row.className = `board-row ${className}`.trim();
+  for (const [text, cls] of cells) {
+    row.append(Object.assign(document.createElement('span'), { className: cls, textContent: text }));
+  }
+  return row;
+}
+
+function renderBoard() {
+  const board = loadBoard();
+  const me = playerName().toLowerCase();
+  const today = view.meta && view.mode === 'daily' ? view.meta.number : Math.max(0, ...Object.keys(board).map(Number));
+
+  const day = Object.values(board[today] ?? {});
+  el('board-day-title').textContent = today ? `Daily #${today}` : 'Today';
+
+  const dayHost = el('board-day');
+  if (!day.length) {
+    dayHost.replaceChildren(Object.assign(document.createElement('p'), {
+      className: 'board-empty',
+      textContent: 'No results yet for this puzzle.',
+    }));
+  } else {
+    dayHost.replaceChildren(
+      boardRow([['', 'rank'], ['Player', 'who'], ['Damage', 'num'], ['Guesses', 'num']], 'head'),
+      ...rank(day).map((entry, i) => boardRow([
+        [String(i + 1), 'rank'],
+        [entry.name, 'who'],
+        [entry.won ? String(entry.body + entry.rope) : 'hanged', entry.won ? 'num' : 'out lost'],
+        [String(entry.guesses), 'num'],
+      ], entry.name.toLowerCase() === me ? 'you' : '')),
+    );
+  }
+
+  const totals = tally(board);
+  const allHost = el('board-all');
+  if (!totals.length) {
+    allHost.replaceChildren(Object.assign(document.createElement('p'), {
+      className: 'board-empty',
+      textContent: 'Add a result to start the table.',
+    }));
+  } else {
+    allHost.replaceChildren(
+      boardRow([['', 'rank'], ['Player', 'who'], ['Survived', 'num'], ['Avg damage', 'num']], 'head'),
+      ...totals.map((player, i) => boardRow([
+        [String(i + 1), 'rank'],
+        [player.name, 'who'],
+        [`${player.wins}/${player.played}`, 'num'],
+        [(player.damage / player.played).toFixed(1), 'num'],
+      ], player.name.toLowerCase() === me ? 'you' : '')),
+    );
+  }
+}
+
+function openBoard() {
+  el('name-input').value = playerName();
+  note('');
+  renderBoard();
+  el('board-dialog').showModal();
+}
+
+function note(text, tone = '') {
+  const node = el('paste-note');
+  node.className = `paste-note ${tone}`.trim();
+  node.textContent = text;
+}
+
+el('board-btn').addEventListener('click', openBoard);
+
+el('name-save').addEventListener('click', () => {
+  const name = el('name-input').value.trim();
+  if (!NAME_PATTERN.test(name)) {
+    note('Letters, numbers, dashes — up to 12.', 'bad');
+    return;
+  }
+  setPlayerName(name);
+  recordOwnEntry();          // backfill today's result now that you have a name
+  renderBoard();
+  note(`Saved. Your share text now carries your code.`, 'good');
+});
+
+el('paste-add').addEventListener('click', () => {
+  const entry = decodeResult(el('paste-input').value);
+  if (!entry) {
+    note("No result code in that. Paste their whole shared message.", 'bad');
+    return;
+  }
+  addToBoard(entry);
+  el('paste-input').value = '';
+  renderBoard();
+  note(`Added ${entry.name} for daily #${entry.number}.`, 'good');
+});
+
+el('board-clear').addEventListener('click', () => {
+  clearBoard();
+  renderBoard();
+  note('Cleared.', '');
 });
 
 /* ---------------------------------------------------------------- modes */

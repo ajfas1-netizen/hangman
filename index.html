@@ -50,6 +50,12 @@
       </svg>
     </button>
 
+    <button class="icon-btn" id="board-btn" aria-label="Leaderboard" title="Leaderboard">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5.5H4.5V7a3 3 0 0 0 3 3M17 5.5h2.5V7a3 3 0 0 1-3 3"/><path d="M12 14v3M8.5 20h7l-.7-3h-5.6z"/>
+      </svg>
+    </button>
+
     <button class="icon-btn" id="stats-btn" aria-label="Statistics" title="Statistics">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
         <path d="M4 20V13.5M12 20V5M20 20v-9"/>
@@ -220,6 +226,40 @@
     <button class="ghost-btn" id="again-btn">Play again</button>
     <button class="ghost-btn" id="home-btn" hidden>Today's puzzle</button>
   </div>
+</dialog>
+
+<dialog class="sheet" id="board-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>Leaderboard</h2>
+  <p class="lede">There's no server behind this, so results travel in the share text. Send yours to the group; paste theirs in here.</p>
+
+  <div class="field">
+    <label class="field-label" for="name-input">Your name — added to your share text</label>
+    <div class="name-row">
+      <input id="name-input" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="AJ" aria-describedby="name-hint">
+      <button class="ghost-btn" id="name-save">Save</button>
+    </div>
+    <p class="hint" id="name-hint">Letters, numbers, dashes. Up to 12.</p>
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="paste-input">Paste a friend's result</label>
+    <textarea id="paste-input" rows="3" spellcheck="false" placeholder="Paste their whole shared message — the code is picked out of it."></textarea>
+    <div class="name-row">
+      <button class="primary-btn" id="paste-add">Add result</button>
+      <span class="paste-note" id="paste-note" role="status" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <h3 id="board-day-title">Today</h3>
+  <div class="board-table" id="board-day"></div>
+
+  <h3>All time</h3>
+  <div class="board-table" id="board-all"></div>
+
+  <button class="ghost-btn danger" id="board-clear">Clear leaderboard</button>
 </dialog>
 
 <dialog class="sheet narrow" id="mode-dialog">
