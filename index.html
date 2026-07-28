@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Hangman crossed with Wordle. Guess the letter — and the slot it sits in.">
+<meta name="theme-color" content="#141210">
+<title>Gallows</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🪢</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="help-btn" aria-label="How to play" title="How to play">?</button>
+  <h1 class="wordmark">GALLOWS</h1>
+  <button class="icon-btn" id="stats-btn" aria-label="Statistics" title="Statistics">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <rect x="3" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+    </svg>
+  </button>
+</header>
+
+<main class="layout">
+
+  <section class="stage" aria-label="The gallows">
+    <svg class="gallows" viewBox="0 0 200 260" role="img" aria-labelledby="gallows-desc">
+      <title id="gallows-desc">Gallows</title>
+      <g class="frame">
+        <line x1="18" y1="242" x2="122" y2="242"/>
+        <line x1="60" y1="242" x2="60" y2="20"/>
+        <line x1="60" y1="20"  x2="150" y2="20"/>
+        <line x1="60" y1="48"  x2="88"  y2="20"/>
+      </g>
+
+      <g class="rope">
+        <line class="rope-line" x1="150" y1="20" x2="150" y2="55"/>
+        <line class="coil" data-coil="1" x1="143" y1="26" x2="157" y2="26"/>
+        <line class="coil" data-coil="2" x1="143" y1="31" x2="157" y2="31"/>
+        <line class="coil" data-coil="3" x1="143" y1="36" x2="157" y2="36"/>
+        <line class="coil" data-coil="4" x1="143" y1="41" x2="157" y2="41"/>
+        <line class="coil" data-coil="5" x1="143" y1="46" x2="157" y2="46"/>
+        <line class="coil" data-coil="6" x1="143" y1="51" x2="157" y2="51"/>
+      </g>
+
+      <g class="body">
+        <circle class="part" data-part="head"     cx="150" cy="70" r="15"/>
+        <line   class="part" data-part="torso"    x1="150" y1="85"  x2="150" y2="140"/>
+        <line   class="part" data-part="armLeft"  x1="150" y1="100" x2="124" y2="124"/>
+        <line   class="part" data-part="armRight" x1="150" y1="100" x2="176" y2="124"/>
+        <line   class="part" data-part="legLeft"  x1="150" y1="140" x2="127" y2="181"/>
+        <line   class="part" data-part="legRight" x1="150" y1="140" x2="173" y2="181"/>
+      </g>
+    </svg>
+
+    <div class="tracks">
+      <div class="track" id="track-body">
+        <span class="track-label">Body</span>
+        <span class="pips" id="pips-body" aria-hidden="true"></span>
+        <span class="track-count"><span id="count-body">0</span>/6</span>
+      </div>
+      <div class="track" id="track-rope">
+        <span class="track-label">Rope</span>
+        <span class="pips" id="pips-rope" aria-hidden="true"></span>
+        <span class="track-count"><span id="count-rope">0</span>/6</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="play">
+    <p class="puzzle-meta" id="puzzle-meta"></p>
+
+    <div class="board" id="board" role="group" aria-label="Word slots"></div>
+
+    <div class="deduction" id="deduction" aria-live="off"></div>
+
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+
+    <div class="keyboard" id="keyboard"></div>
+
+    <div class="actions">
+      <button class="ghost-btn" id="solve-btn">Call the word</button>
+      <button class="ghost-btn" id="practice-btn">Practice word</button>
+      <button class="ghost-btn" id="daily-btn" hidden>Back to today's</button>
+    </div>
+  </section>
+
+</main>
+
+<dialog class="sheet" id="help-dialog">
+  <button class="close-btn" data-close aria-label="Close">×</button>
+  <h2>How to play</h2>
+  <p class="lede">Guess a letter <em>and</em> the slot it sits in.</p>
+
+  <ul class="rules">
+    <li><span class="chip chip-hit">Hit</span> The letter is in that slot. It locks in. Costs you nothing.</li>
+    <li><span class="chip chip-near">Near</span> The letter is in the word, but not there. The rope tightens.</li>
+    <li><span class="chip chip-miss">Miss</span> The letter isn't in the word. A body part goes up.</li>
+  </ul>
+
+  <p>Two ways to hang: <strong>six body parts</strong> or <strong>six rope notches</strong>. They fill independently, so a run of near misses will kill you just as surely as a run of wrong letters.</p>
+
+  <h3>The catch</h3>
+  <p>Landing a letter tells you nothing about how many more of it there are. Hit the <code>O</code> in slot 3 of <code>SPOON</code> and the second <code>O</code> is still out there, unmarked. Nothing ever tells you a count.</p>
+  <p>One consequence worth knowing: once every copy of a letter is on the board, guessing it again is a <strong>miss</strong>, not a near. There's nothing left to find, and the game won't pretend otherwise.</p>
+
+  <h3>Calling the word</h3>
+  <p>Think you've got it? Call the whole word. Right wins on the spot. Wrong costs <strong>two body parts</strong>.</p>
+
+  <h3>Reading the board</h3>
+  <p>The keyboard tracks what you know about each letter overall. Each slot tracks what you've ruled out <em>for that slot</em> — select a slot to see its eliminations.</p>
+
+  <p class="footnote">A new word every day. Length ramps through the week: five letters early, seven by the weekend.</p>
+</dialog>
+
+<dialog class="sheet" id="stats-dialog">
+  <button class="close-btn" data-close aria-label="Close">×</button>
+  <h2>Statistics</h2>
+  <div class="stat-row" id="stat-row"></div>
+  <h3>Body parts used, when you survived</h3>
+  <div class="dist" id="dist"></div>
+  <button class="ghost-btn danger" id="reset-stats">Reset statistics</button>
+</dialog>
+
+<dialog class="sheet" id="end-dialog">
+  <button class="close-btn" data-close aria-label="Close">×</button>
+  <h2 id="end-title"></h2>
+  <p class="end-word" id="end-word"></p>
+  <p class="end-note" id="end-note"></p>
+  <pre class="grid" id="end-grid"></pre>
+  <div class="end-actions">
+    <button class="primary-btn" id="share-btn">Share result</button>
+    <button class="ghost-btn" id="again-btn">Practice word</button>
+  </div>
+</dialog>
+
+<dialog class="sheet narrow" id="solve-dialog">
+  <button class="close-btn" data-close aria-label="Close">×</button>
+  <h2>Call the word</h2>
+  <p class="warn">Wrong costs two body parts.</p>
+  <form method="dialog" id="solve-form">
+    <input id="solve-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your answer">
+    <div class="end-actions">
+      <button class="primary-btn" value="submit">Call it</button>
+      <button class="ghost-btn" value="cancel" formnovalidate>Never mind</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
