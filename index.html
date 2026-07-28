@@ -57,12 +57,12 @@
       <div class="track" id="track-body">
         <span class="track-label">Body</span>
         <span class="pips" id="pips-body" aria-hidden="true"></span>
-        <span class="track-count"><span id="count-body">0</span>/6</span>
+        <span class="track-count"><span id="count-body">0</span>/<span id="max-body">6</span></span>
       </div>
       <div class="track" id="track-rope">
         <span class="track-label">Rope</span>
         <span class="pips" id="pips-rope" aria-hidden="true"></span>
-        <span class="track-count"><span id="count-rope">0</span>/6</span>
+        <span class="track-count"><span id="count-rope">0</span>/<span id="max-rope">6</span></span>
       </div>
     </div>
   </section>
@@ -98,14 +98,14 @@
     <li><span class="chip chip-miss">Miss</span> The letter isn't in the word. A body part goes up.</li>
   </ul>
 
-  <p>Two ways to hang: <strong>six body parts</strong> or <strong>six rope notches</strong>. They fill independently, so a run of near misses will kill you just as surely as a run of wrong letters.</p>
+  <p>Two ways to hang: <strong><span data-max-body>6</span> body parts</strong> or <strong><span data-max-rope>5</span> rope notches</strong>. They fill independently, so a run of near misses will kill you just as surely as a run of wrong letters. The rope is the shorter track on purpose — near misses come up less often than outright wrong letters, so it takes fewer of them to matter.</p>
 
   <h3>The catch</h3>
   <p>Landing a letter tells you nothing about how many more of it there are. Hit the <code>O</code> in slot 3 of <code>SPOON</code> and the second <code>O</code> is still out there, unmarked. Nothing ever tells you a count.</p>
   <p>One consequence worth knowing: once every copy of a letter is on the board, guessing it again is a <strong>miss</strong>, not a near. There's nothing left to find, and the game won't pretend otherwise.</p>
 
   <h3>Calling the word</h3>
-  <p>Think you've got it? Call the whole word. Right wins on the spot. Wrong costs <strong>two body parts</strong>.</p>
+  <p>Think you've got it? Call the whole word. Right wins on the spot. Wrong costs <strong><span data-solve-penalty>2</span> body parts</strong>.</p>
 
   <h3>Reading the board</h3>
   <p>The keyboard tracks what you know about each letter overall. Each slot tracks what you've ruled out <em>for that slot</em> — select a slot to see its eliminations.</p>
@@ -137,7 +137,7 @@
 <dialog class="sheet narrow" id="solve-dialog">
   <button class="close-btn" data-close aria-label="Close">×</button>
   <h2>Call the word</h2>
-  <p class="warn">Wrong costs two body parts.</p>
+  <p class="warn">Wrong costs <span data-solve-penalty>2</span> body parts.</p>
   <form method="dialog" id="solve-form">
     <input id="solve-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your answer">
     <div class="end-actions">

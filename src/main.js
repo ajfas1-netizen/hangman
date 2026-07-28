@@ -8,7 +8,7 @@
 import {
   createGame, guess, solve, letterState, excludedAt,
   HIT, NEAR, MISS, REJECTED, PLAYING, WON,
-  MAX_MISSES, MAX_NEARS, BODY_PARTS,
+  MAX_MISSES, MAX_NEARS, SOLVE_PENALTY, BODY_PARTS,
 } from './engine.js';
 import { wordForDate, randomWord } from './daily.js';
 import { loadDaily, saveDaily, loadStats, recordResult, resetStats } from './storage.js';
@@ -28,6 +28,8 @@ const dom = {
   pipsRope: el('pips-rope'),
   countBody: el('count-body'),
   countRope: el('count-rope'),
+  maxBody: el('max-body'),
+  maxRope: el('max-rope'),
   trackBody: el('track-body'),
   trackRope: el('track-rope'),
   solveBtn: el('solve-btn'),
@@ -287,23 +289,29 @@ const KEY_LABEL = {
 
 function renderTracks() {
   const g = view.game;
-  const body = Math.min(g.misses, MAX_MISSES);
-  const rope = Math.min(g.nears, MAX_NEARS);
+  const { maxMisses, maxNears } = g.limits;
+  const body = Math.min(g.misses, maxMisses);
+  const rope = Math.min(g.nears, maxNears);
 
-  pips(dom.pipsBody, body, MAX_MISSES);
-  pips(dom.pipsRope, rope, MAX_NEARS);
+  pips(dom.pipsBody, body, maxMisses);
+  pips(dom.pipsRope, rope, maxNears);
   dom.countBody.textContent = String(body);
   dom.countRope.textContent = String(rope);
-  dom.trackBody.classList.toggle('full', body >= MAX_MISSES);
-  dom.trackRope.classList.toggle('full', rope >= MAX_NEARS);
+  dom.maxBody.textContent = String(maxMisses);
+  dom.maxRope.textContent = String(maxNears);
+  dom.trackBody.classList.toggle('full', body >= maxMisses);
+  dom.trackRope.classList.toggle('full', rope >= maxNears);
 
   BODY_PARTS.forEach((part, i) => {
     dom.gallows.querySelector(`[data-part="${part}"]`).classList.toggle('on', i < body);
   });
-  for (let i = 1; i <= MAX_NEARS; i++) {
-    dom.gallows.querySelector(`[data-coil="${i}"]`).classList.toggle('on', i <= rope);
+  // The rope has more coils drawn than the track is long; the extras stay dark.
+  for (const coil of dom.gallows.querySelectorAll('.coil')) {
+    const n = Number(coil.dataset.coil);
+    coil.classList.toggle('on', n <= rope);
+    coil.classList.toggle('unused', n > maxNears);
   }
-  dom.gallows.classList.toggle('rope-full', rope >= MAX_NEARS);
+  dom.gallows.classList.toggle('rope-full', rope >= maxNears);
   dom.gallows.classList.toggle('dead', g.status !== PLAYING && g.status !== WON);
 }
 
@@ -380,14 +388,15 @@ function showEnd({ replay }) {
   el('end-grid').textContent = shareGrid(g);
   el('share-btn').hidden = view.mode !== 'daily';
 
+  const { maxMisses, maxNears } = g.limits;
   const wrongCalls = g.history.filter((h) => h.solve && !h.correct).length;
   el('end-note').textContent = won
     ? `${g.misses} body ${plural(g.misses, 'part')}, ${g.nears} rope ${plural(g.nears, 'notch', 'notches')}.`
-    : g.nears >= MAX_NEARS
-      ? 'The rope got you — six near misses.'
+    : g.nears >= maxNears
+      ? `The rope got you — ${maxNears} near misses.`
       : wrongCalls
-        ? `Six body parts — ${wrongCalls} wrong ${plural(wrongCalls, 'call')} cost you ${wrongCalls * 2} of them.`
-        : 'Six wrong letters. The body was finished.';
+        ? `${maxMisses} body parts — ${wrongCalls} wrong ${plural(wrongCalls, 'call')} cost you ${wrongCalls * 2} of them.`
+        : `${maxMisses} wrong letters. The body was finished.`;
 
   el('again-btn').textContent = replay ? 'Play a practice word' : 'Practice word';
   el('end-dialog').showModal();
@@ -498,6 +507,16 @@ el('share-btn').addEventListener('click', async () => {
   btn.textContent = ok ? 'Copied' : 'Copy failed';
   setTimeout(() => { btn.textContent = original; }, 1400);
 });
+
+// Keep the written rules in step with the constants, so tuning a track length
+// can never leave the help text quietly lying about it.
+for (const [selector, value] of [
+  ['[data-max-body]', MAX_MISSES],
+  ['[data-max-rope]', MAX_NEARS],
+  ['[data-solve-penalty]', SOLVE_PENALTY],
+]) {
+  for (const node of document.querySelectorAll(selector)) node.textContent = String(value);
+}
 
 // First visit gets the rules unprompted — the two-track scoring needs explaining.
 if (!localStorage.getItem('gallows:seen')) {

@@ -25,7 +25,17 @@
  */
 
 export const MAX_MISSES = 6;
-export const MAX_NEARS = 6;
+
+/**
+ * Five, not six. Near misses accrue more slowly than outright misses, so equal
+ * track lengths are not equal pressure: simulating every word in the pools at
+ * 6/6 put only 14% of deaths on the rope, which makes it decoration. Five
+ * splits deaths 43/57 between rope and body while keeping a strong bot around
+ * a 90% win rate. Dropping to 4 balances just as well but costs too much
+ * difficulty (bot falls to 71%). Re-measure with scripts/simulate.js --grid
+ * if the word pools change materially.
+ */
+export const MAX_NEARS = 5;
 export const SOLVE_PENALTY = 2;
 
 export const HIT = 'hit';

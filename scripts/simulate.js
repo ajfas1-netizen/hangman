@@ -129,6 +129,29 @@ const games = arg('games', 240);
 if (process.argv.includes('--sweep')) {
   console.log(`Sweeping rope length, body fixed at 6, ~${games} games each.\n`);
   for (const rope of [2, 3, 4, 5, 6, 8]) report(run({ body: 6, rope, games }));
+} else if (process.argv.includes('--grid')) {
+  // Balance means neither track dominates the deaths. Because near misses
+  // accrue more slowly than outright misses, that balance point is not at
+  // equal lengths — it has to be found by measuring both together.
+  console.log(`Grid over both tracks, ~${games} games each.`);
+  console.log('Looking for rope-share-of-deaths near 50% at a difficulty that leaves humans room.\n');
+  const rows = [];
+  for (const body of [4, 5, 6, 7]) {
+    for (const rope of [3, 4, 5, 6]) {
+      const r = run({ body, rope, games });
+      rows.push(r);
+      report(r);
+    }
+    console.log('');
+  }
+  const balanced = rows
+    .map((r) => ({ ...r, skew: Math.abs(r.ropeShareOfDeaths - 0.5) }))
+    .sort((a, b) => a.skew - b.skew)
+    .slice(0, 6);
+  console.log('Closest to an even split between the two tracks:');
+  for (const r of balanced) {
+    console.log(`  body ${r.body} rope ${r.rope}  rope share ${pct(r.ropeShareOfDeaths)}  win ${pct(r.winRate)}`);
+  }
 } else {
   report(run({ body: arg('body', 6), rope: arg('rope', 6), games }));
 }

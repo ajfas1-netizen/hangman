@@ -3,7 +3,7 @@
  * the same shape as the puzzle, and it spoils nothing — position of a square
  * says nothing about which slot was guessed.
  */
-import { HIT, NEAR, MAX_MISSES, MAX_NEARS, WON } from './engine.js';
+import { HIT, NEAR, WON, LOST } from './engine.js';
 
 const SQUARE = { [HIT]: '🟩', [NEAR]: '🟨' };
 const MISS_SQUARE = '⬛';
@@ -23,10 +23,11 @@ export function shareGrid(state) {
 
 export function shareText(state, { number, url = '' } = {}) {
   const title = number ? `Gallows #${number}` : 'Gallows';
-  const outcome = state.status === WON ? 'survived' : 'hanged';
+  const outcome = state.status === WON ? 'survived' : state.status === LOST ? 'hanged' : 'unfinished';
+  const { maxMisses, maxNears } = state.limits;
   const lines = [
     `${title} · ${state.length} letters · ${outcome}`,
-    `body ${Math.min(state.misses, MAX_MISSES)}/${MAX_MISSES} · rope ${Math.min(state.nears, MAX_NEARS)}/${MAX_NEARS}`,
+    `body ${Math.min(state.misses, maxMisses)}/${maxMisses} · rope ${Math.min(state.nears, maxNears)}/${maxNears}`,
     '',
     shareGrid(state),
   ];

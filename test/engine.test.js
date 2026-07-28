@@ -113,14 +113,37 @@ test('six misses hangs you', () => {
   assert.equal(g.status, LOST);
 });
 
-test('six nears hangs you just as dead', () => {
+test('a full rope hangs you just as dead, with the body untouched', () => {
   const g = createGame('speed'); // s p e e d
-  // Six nears without ever landing a letter.
   const nears = [['e', 0], ['e', 1], ['d', 0], ['s', 1], ['p', 0], ['e', 4]];
-  for (const [ch, i] of nears) assert.equal(guess(g, ch, i).result, NEAR);
+  for (const [ch, i] of nears.slice(0, MAX_NEARS)) {
+    assert.equal(guess(g, ch, i).result, NEAR);
+  }
   assert.equal(g.nears, MAX_NEARS);
-  assert.equal(g.status, LOST);
   assert.equal(g.misses, 0);
+  assert.equal(g.status, LOST);
+});
+
+test('the rope is the shorter track', () => {
+  // Near misses accrue more slowly than misses, so equal lengths would leave
+  // the rope almost never deciding a game. See scripts/simulate.js.
+  assert.ok(MAX_NEARS < MAX_MISSES);
+});
+
+test('track lengths can be overridden per game', () => {
+  const g = createGame('spoon', { maxNears: 2, maxMisses: 9 });
+  assert.equal(guess(g, 'n', 0).result, NEAR);
+  assert.equal(g.status, PLAYING);
+  assert.equal(guess(g, 'o', 0).result, NEAR);
+  assert.equal(g.status, LOST);
+  assert.deepEqual(lifeRemaining(g), { misses: 9, nears: 0 });
+});
+
+test('a custom solve penalty is respected', () => {
+  const g = createGame('spoon', { solvePenalty: 4 });
+  solve(g, 'stone');
+  assert.equal(g.misses, 4);
+  assert.equal(g.status, PLAYING);
 });
 
 test('a correct call wins outright and fills the board', () => {

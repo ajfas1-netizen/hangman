@@ -161,6 +161,10 @@ body {
   transform: scaleX(1);
 }
 
+/* More coils are drawn than the rope track is long, so tuning the limit needs
+   no markup change. The surplus simply isn't rendered. */
+.gallows .coil.unused { display: none; }
+
 .gallows .part {
   stroke: var(--text);
   fill: none;

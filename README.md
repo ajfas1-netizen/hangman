@@ -14,9 +14,23 @@ Every guess is a pair: a letter and a slot.
 | **Near** | The letter is in the word, but not there | The rope tightens. |
 | **Miss** | The letter isn't in the word | A body part goes up. |
 
-Two tracks can kill you, and they fill independently: **six body parts** or **six rope notches**. A run of near misses is just as fatal as a run of wrong letters.
+Two tracks can kill you, and they fill independently: **six body parts** or **five rope notches**. A run of near misses is just as fatal as a run of wrong letters.
 
 That price on a near miss is what keeps the game honest. If probing were free, the dominant strategy would be to fire every common letter at slot 1 to test membership at no cost — which is Wordle with extra clicks. Charging for a near makes probing a real tactic with a real cost.
+
+### Why the rope is shorter
+
+Equal track lengths are not equal pressure. Near misses accrue more slowly than outright misses, so at 6/6 the rope almost never decides anything — simulating every word in the pools put just **14%** of deaths on it. Five splits deaths 43/57 between rope and body while keeping a strong bot near a 90% win rate:
+
+| body / rope | bot win rate | rope's share of deaths |
+|---|---|---|
+| 6 / 6 | 93% | 14% |
+| **6 / 5** | **90%** | **43%** |
+| 5 / 4 | 71% | 45% |
+
+Four balances just as well but costs too much difficulty. Note that the bot has perfect recall of every word still consistent with the feedback and calls the answer the moment one candidate remains — read its win rate as a ceiling, not a forecast for humans.
+
+Both limits live at the top of `src/engine.js`, and `createGame` takes per-game overrides. Re-measure with `node scripts/simulate.js --grid` if the word pools change materially.
 
 ### No counting
 
@@ -76,6 +90,9 @@ npm test          # engine + daily-puzzle tests
 npm run words     # validate the answer pools
 npm run words:fix # drop bad entries, dedupe, sort
 npm start         # serve on :8080
+
+node scripts/simulate.js --grid            # balance sweep over both tracks
+node scripts/simulate.js --body 6 --rope 5 # measure one setting
 ```
 
 Deploying is a file copy — any static host works, GitHub Pages included.
