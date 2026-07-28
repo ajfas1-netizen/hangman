@@ -166,6 +166,29 @@ audit it yourself: a naive check reads `backgroundColor`, which is `transparent`
 on anything using a gradient — that reports the placed keys against the page
 behind them and is wildly wrong in both directions.
 
+## Home screen
+
+Saved to a phone's home screen, the app gets the gallows as its icon and opens
+without browser chrome.
+
+`icons/icon.svg` is the source; `node scripts/icons.js` renders the PNGs, which
+are committed so deploying never needs a browser installed. The icon is drawn
+separately from the in-game gallows rather than reused — at 60px the figure is
+mud, so it's the silhouette and the noose at much heavier stroke weights, kept
+inside a centred circle so Android can mask it to any shape.
+
+Two things to preserve if you touch this:
+
+- Every icon and manifest path is **relative**. The site is served from a
+  `/hangman/` subpath, so a leading slash sends every request to the domain root.
+- iOS ignores an SVG `apple-touch-icon`, and ignores a `data:` URI for one. It
+  wants a real PNG at a real path, which is why `apple-touch-icon.png` exists
+  alongside the SVG favicon.
+
+The status bar is translucent in standalone mode, so `.topbar` adds
+`env(safe-area-inset-top)` to its padding — without it the clock lands on the
+wordmark.
+
 ## Layout
 
 ```
@@ -179,6 +202,7 @@ src/share.js        result grid and clipboard
 src/main.js         UI controller
 test/               node --test
 scripts/serve.js    static server for local play
+scripts/icons.js    renders icons/*.png from icons/icon.svg
 scripts/check-words.js
 scripts/simulate.js     balance simulator (candidate bot + human model)
 ```

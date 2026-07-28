@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Hangdle</title>
+  <!--
+    Source of truth for every app icon; the PNGs are rendered from this by
+    scripts/icons.js. Drawn for small sizes rather than reused from the game:
+    the figure is left off entirely and the strokes are far heavier, because at
+    60px on a home screen the gallows silhouette and the noose are the only
+    parts that survive. The noose loop also means the icon reads as the game's
+    resting state rather than as somebody already dead.
+
+    Everything sits inside a centred circle of ~40% radius so Android can mask
+    it to any shape without clipping the drawing.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#181d25"/>
+      <stop offset="100%" stop-color="#0b0d10"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="66%" cy="18%" r="62%">
+      <stop offset="0%" stop-color="#ffb347" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#ffb347" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wood" gradientUnits="userSpaceOnUse" x1="110" y1="110" x2="360" y2="420">
+      <stop offset="0%" stop-color="#a9885f"/>
+      <stop offset="55%" stop-color="#7d6444"/>
+      <stop offset="100%" stop-color="#4e3d29"/>
+    </linearGradient>
+    <linearGradient id="rope" gradientUnits="userSpaceOnUse" x1="330" y1="120" x2="392" y2="330">
+      <stop offset="0%" stop-color="#f7cd86"/>
+      <stop offset="100%" stop-color="#c8892c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#lamp)"/>
+
+  <g transform="translate(256 256) scale(0.86) translate(-256 -256)">
+    <g fill="none" stroke="url(#wood)" stroke-linecap="round" stroke-width="34">
+      <path d="M112 412 H252"/>
+      <path d="M172 412 V120"/>
+      <path d="M172 120 H352"/>
+    </g>
+    <path d="M172 184 L236 120" fill="none" stroke="url(#wood)" stroke-linecap="round" stroke-width="26"/>
+
+    <g fill="none" stroke="url(#rope)" stroke-linecap="round">
+      <path d="M352 128 V214" stroke-width="15"/>
+      <path d="M330 222 H374" stroke-width="17"/>
+      <path d="M330 246 H374" stroke-width="17"/>
+      <circle cx="352" cy="318" r="52" stroke-width="15"/>
+    </g>
+  </g>
+</svg>
