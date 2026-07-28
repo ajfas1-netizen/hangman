@@ -1,60 +1,71 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isConfigured, submitScore, fetchScores } from '../src/remote.js';
+import { readFileSync } from 'node:fs';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../src/config.js';
 
-/**
- * config.js ships empty, so the module under test reports itself unconfigured.
- * These tests cover that path plus the wire behaviour, by standing in a fake
- * fetch and a fake config through the module's own request shape.
- */
 const entry = { number: 209, name: 'AJ', won: true, body: 1, rope: 2, guesses: 11 };
 
+/**
+ * Load remote.js with substituted config, so behaviour can be tested at both
+ * settings regardless of what the repo currently ships. Testing against the
+ * real config would make these tests pass or fail depending on whether a
+ * project happens to be connected.
+ */
+async function loadRemote({ url, key }, fetchImpl) {
+  const realFetch = globalThis.fetch;
+  if (fetchImpl) globalThis.fetch = fetchImpl;
+
+  const source = readFileSync(new URL('../src/remote.js', import.meta.url), 'utf8')
+    .replace(
+      "import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';",
+      `const SUPABASE_URL = ${JSON.stringify(url)};\nconst SUPABASE_ANON_KEY = ${JSON.stringify(key)};`,
+    );
+
+  const module = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+  return { module, restore: () => { globalThis.fetch = realFetch; } };
+}
+
+const EMPTY = { url: '', key: '' };
+const FAKE = { url: 'https://example.supabase.co', key: 'anon-key' };
+
 test('an unconfigured project is inert, not broken', async () => {
-  assert.equal(isConfigured(), false);
-  assert.equal(await submitScore(entry), 'offline');
-  assert.equal(await fetchScores(), null);
+  const { module, restore } = await loadRemote(EMPTY);
+  try {
+    assert.equal(module.isConfigured(), false);
+    assert.equal(await module.submitScore(entry), 'offline');
+    assert.equal(await module.fetchScores(), null);
+  } finally {
+    restore();
+  }
 });
 
 test('an unconfigured project never touches the network', async () => {
-  const real = globalThis.fetch;
   let called = false;
-  globalThis.fetch = () => { called = true; throw new Error('should not be called'); };
+  const { module, restore } = await loadRemote(EMPTY, () => {
+    called = true;
+    throw new Error('should not be called');
+  });
   try {
-    await submitScore(entry);
-    await fetchScores();
+    await module.submitScore(entry);
+    await module.fetchScores();
     assert.equal(called, false);
   } finally {
-    globalThis.fetch = real;
+    restore();
   }
 });
 
-// The remaining behaviour is exercised against a stand-in module so the real
-// config can stay empty in the repo.
-const CONFIG = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'anon-key' };
-
-async function withFakeProject(fetchImpl, run) {
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = fetchImpl;
-  try {
-    const source = (await import('node:fs')).readFileSync(new URL('../src/remote.js', import.meta.url), 'utf8')
-      .replace("import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';",
-               `const SUPABASE_URL = ${JSON.stringify(CONFIG.SUPABASE_URL)};\nconst SUPABASE_ANON_KEY = ${JSON.stringify(CONFIG.SUPABASE_ANON_KEY)};`);
-    const module = await import(`data:text/javascript,${encodeURIComponent(source)}`);
-    await run(module);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-}
-
-test('a score posts to the scores table with the anon key', async () => {
+test('a score posts to the hangdle table with the key', async () => {
   let seen = null;
-  await withFakeProject(
-    async (url, options) => { seen = { url, options }; return { ok: true, status: 201 }; },
-    async (remote) => {
-      assert.equal(remote.isConfigured(), true);
-      assert.equal(await remote.submitScore(entry), 'saved');
-    },
-  );
+  const { module, restore } = await loadRemote(FAKE, async (url, options) => {
+    seen = { url, options };
+    return { ok: true, status: 201 };
+  });
+  try {
+    assert.equal(module.isConfigured(), true);
+    assert.equal(await module.submitScore(entry), 'saved');
+  } finally {
+    restore();
+  }
   assert.equal(seen.url, 'https://example.supabase.co/rest/v1/hangdle_scores');
   assert.equal(seen.options.method, 'POST');
   assert.equal(seen.options.headers.apikey, 'anon-key');
@@ -64,42 +75,87 @@ test('a score posts to the scores table with the anon key', async () => {
 });
 
 test('a repeat submission is reported as a duplicate, not a failure', async () => {
-  await withFakeProject(
-    async () => ({ ok: false, status: 409 }),
-    async (remote) => assert.equal(await remote.submitScore(entry), 'duplicate'),
-  );
+  const { module, restore } = await loadRemote(FAKE, async () => ({ ok: false, status: 409 }));
+  try {
+    assert.equal(await module.submitScore(entry), 'duplicate');
+    assert.equal(module.lastError(), null, 'a duplicate is not an error worth showing');
+  } finally {
+    restore();
+  }
 });
 
 test('a dead network is offline, never an exception', async () => {
-  await withFakeProject(
-    async () => { throw new TypeError('Failed to fetch'); },
-    async (remote) => {
-      assert.equal(await remote.submitScore(entry), 'offline');
-      assert.equal(await remote.fetchScores(), null);
-    },
-  );
+  const { module, restore } = await loadRemote(FAKE, async () => { throw new TypeError('Failed to fetch'); });
+  try {
+    assert.equal(await module.submitScore(entry), 'offline');
+    assert.equal(await module.fetchScores(), null);
+    assert.equal(module.lastError(), 'no connection');
+  } finally {
+    restore();
+  }
 });
 
 test('rows come back shaped like leaderboard entries', async () => {
-  await withFakeProject(
-    async () => ({ ok: true, status: 200, json: async () => ([
-      { puzzle: '209', name: 'Sam', won: true, body: '0', rope: '1', guesses: '8' },
-    ]) }),
-    async (remote) => {
-      assert.deepEqual(await remote.fetchScores(), [
-        { number: 209, name: 'Sam', won: true, body: 0, rope: 1, guesses: 8 },
-      ]);
-    },
-  );
+  const { module, restore } = await loadRemote(FAKE, async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ([{ puzzle: '209', name: 'Sam', won: true, body: '0', rope: '1', guesses: '8' }]),
+  }));
+  try {
+    assert.deepEqual(await module.fetchScores(), [
+      { number: 209, name: 'Sam', won: true, body: 0, rope: 1, guesses: 8 },
+    ]);
+    assert.equal(module.lastError(), null);
+  } finally {
+    restore();
+  }
+});
+
+test('failures name themselves so the page can say what broke', async () => {
+  const cases = [
+    [401, 'key rejected'],
+    [403, 'key rejected'],
+    [404, 'table not found'],
+    [400, 'request rejected'],
+    [500, 'HTTP 500'],
+  ];
+  for (const [status, expected] of cases) {
+    const { module, restore } = await loadRemote(FAKE, async () => ({ ok: false, status }));
+    try {
+      assert.equal(await module.fetchScores(), null);
+      assert.equal(module.lastError(), expected, `status ${status}`);
+    } finally {
+      restore();
+    }
+  }
 });
 
 test('a garbled response is null rather than a crash', async () => {
-  await withFakeProject(
-    async () => ({ ok: true, status: 200, json: async () => ({ message: 'nope' }) }),
-    async (remote) => assert.equal(await remote.fetchScores(), null),
-  );
-  await withFakeProject(
-    async () => ({ ok: false, status: 500 }),
-    async (remote) => assert.equal(await remote.fetchScores(), null),
-  );
+  const { module, restore } = await loadRemote(FAKE, async () => ({
+    ok: true, status: 200, json: async () => ({ message: 'nope' }),
+  }));
+  try {
+    assert.equal(await module.fetchScores(), null);
+    assert.equal(module.lastError(), 'unexpected response');
+  } finally {
+    restore();
+  }
+});
+
+/**
+ * The committed key is public by design, but only the anon role is safe to
+ * publish: service_role ignores every row-level security policy, so shipping
+ * one would hand the whole database to anyone who views source.
+ */
+test('any committed key is an anon key for the configured project', () => {
+  if (!SUPABASE_ANON_KEY) return;   // unconfigured checkout, nothing to check
+
+  assert.ok(SUPABASE_URL, 'a key without a URL is a half-configured project');
+
+  const parts = SUPABASE_ANON_KEY.split('.');
+  if (parts.length !== 3) return;   // new-style sb_publishable_ key, not a JWT
+
+  const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+  assert.equal(claims.role, 'anon', 'never commit a service_role key');
+  assert.ok(SUPABASE_URL.includes(claims.ref), 'key belongs to a different project than the URL');
 });

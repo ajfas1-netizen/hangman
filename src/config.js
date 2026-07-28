@@ -13,5 +13,6 @@
  *
  * Never put the service_role key here. That one bypasses every policy.
  */
-export const SUPABASE_URL = '';
-export const SUPABASE_ANON_KEY = '';
+export const SUPABASE_URL = 'https://gkeemnramnkmrglnayjy.supabase.co';
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrZWVtbnJhbW5rbXJnbG5heWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTg1MTQsImV4cCI6MjA5OTk3NDUxNH0.bhwCq7d-DB8X2euXR6OMLROX8WpQQ8gIcIoP5azsgGE';
