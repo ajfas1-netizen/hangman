@@ -62,6 +62,21 @@ Pick a slot, pick a letter, press **Enter** to commit. The two-step commit is de
 
 Arrow keys move between empty slots, Backspace clears the pending letter, and clicking a slot selects it.
 
+## Home screen
+
+The app opens on a menu rather than dropping straight onto a board. Launched
+from a phone's home screen, landing mid-puzzle reads as an interrupted session
+rather than an opening.
+
+The menu shares the gallows with the game — entering a puzzle swaps only the
+right-hand column — and states plainly where today stands: not started, in
+progress with the damage so far, or the result if it's done. The primary button
+relabels to match (*Play* / *Continue* / *See today's result*), so there is one
+obvious thing to press. Streak, best, played and survived sit underneath.
+
+Back arrow or **Escape** returns to the menu; **Enter** on the menu starts the
+daily. Letters typed on the menu are ignored rather than reaching the board.
+
 ## Daily puzzle
 
 One word a day, the same for everyone, derived from the local date — so it flips at your midnight, not UTC's. Length ramps through the week: five letters early, seven by the weekend.

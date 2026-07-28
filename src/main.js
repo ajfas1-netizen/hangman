@@ -42,6 +42,8 @@ const dom = {
   resultBtn: el('result-btn'),
   newBtn: el('new-btn'),
   dailyBtn: el('daily-btn'),
+  backBtn: el('back-btn'),
+  helpBtn: el('help-btn'),
 };
 
 /**
@@ -86,13 +88,16 @@ const view = {
 
 /* ---------------------------------------------------------------- setup */
 
-function startDaily() {
+function startDaily({ enter = true } = {}) {
   const picked = wordForDate();
   view.mode = 'daily';
   view.meta = { number: picked.number, length: picked.length };
   view.game = loadDaily(picked.number) ?? createGame(picked.word);
   view.ended = view.game.status !== PLAYING;
   begin();
+
+  if (!enter) return;
+  setScreen('game');
   if (view.game.status !== PLAYING) showEnd({ replay: true });
 }
 
@@ -106,6 +111,7 @@ function startPractice(prefs = view.prefs) {
   view.game = createGame(picked.word, MODES[prefs.difficulty].limits);
   view.ended = false;
   begin();
+  setScreen('game');
 }
 
 function begin() {
@@ -125,6 +131,58 @@ function begin() {
 function firstEmptySlot() {
   const i = view.game.slots.findIndex((s) => s === null);
   return i === -1 ? 0 : i;
+}
+
+/* ---------------------------------------------------------------- screens */
+
+function setScreen(screen) {
+  document.body.dataset.screen = screen;
+  dom.backBtn.hidden = screen !== 'game';
+  dom.helpBtn.hidden = screen === 'game';
+  if (screen === 'home') renderHome();
+}
+
+/** Plain words for where today's puzzle stands, without giving anything away. */
+function dailyStanding() {
+  const g = view.game;
+  if (view.mode !== 'daily') return null;
+  if (g.status === PLAYING) {
+    return g.history.length
+      ? { label: 'Continue today\'s puzzle',
+          status: `In progress — ${g.misses} body, ${g.nears} rope.` }
+      : { label: 'Play today\'s puzzle', status: 'Not started yet.' };
+  }
+  return {
+    label: 'See today\'s result',
+    status: g.status === WON
+      ? `Survived today on ${g.misses} body and ${g.nears} rope.`
+      : 'Hanged today. Practice is unlimited.',
+  };
+}
+
+function renderHome() {
+  const standing = dailyStanding();
+  el('home-eyebrow').textContent = view.meta
+    ? `Daily #${view.meta.number} · ${view.meta.length} letters`
+    : '';
+  el('home-status').textContent = standing?.status ?? '';
+  el('home-play').textContent = standing?.label ?? "Play today's puzzle";
+
+  const stats = loadStats();
+  const survived = stats.played ? Math.round((stats.wins / stats.played) * 100) : 0;
+  el('home-stats').replaceChildren(...[
+    ['Streak', stats.streak],
+    ['Best', stats.maxStreak],
+    ['Played', stats.played],
+    ['Survived', `${survived}%`],
+  ].map(([label, value]) => {
+    const cell = document.createElement('div');
+    cell.append(
+      Object.assign(document.createElement('dt'), { textContent: label }),
+      Object.assign(document.createElement('dd'), { textContent: String(value) }),
+    );
+    return cell;
+  }));
 }
 
 /* ---------------------------------------------------------------- build */
@@ -444,6 +502,7 @@ function finishIfOver() {
   if (g.status === PLAYING || view.ended) return;
 
   view.ended = true;
+  renderHome();      // streak and standing change the moment a game ends
   if (view.mode === 'daily') {
     recordResult(view.meta.number, g);
     recordOwnEntry();
@@ -530,6 +589,13 @@ document.addEventListener('keydown', (e) => {
   if (open) return;                                 // dialogs handle their own keys
   if (e.metaKey || e.ctrlKey || e.altKey) return;
 
+  // On the menu, Escape does nothing and letters must not reach the board.
+  if (document.body.dataset.screen !== 'game') {
+    if (e.key === 'Enter') { startDaily(); e.preventDefault(); }
+    return;
+  }
+  if (e.key === 'Escape') { setScreen('home'); e.preventDefault(); return; }
+
   if (/^[a-zA-Z]$/.test(e.key)) {
     setPending(e.key.toLowerCase());
     e.preventDefault();
@@ -552,12 +618,19 @@ for (const btn of document.querySelectorAll('[data-close]')) {
   btn.addEventListener('click', () => btn.closest('dialog').close());
 }
 
+dom.backBtn.addEventListener('click', () => setScreen('home'));
+el('home-play').addEventListener('click', () => startDaily());
+el('home-new').addEventListener('click', openModes);
+el('home-board').addEventListener('click', openBoard);
+el('home-help').addEventListener('click', () => el('help-dialog').showModal());
 el('help-btn').addEventListener('click', () => el('help-dialog').showModal());
 el('stats-btn').addEventListener('click', showStats);
 dom.solveBtn.addEventListener('click', callTheWord);
 dom.resultBtn.addEventListener('click', () => showEnd({ replay: true }));
 dom.newBtn.addEventListener('click', openModes);
-dom.dailyBtn.addEventListener('click', startDaily);
+// Wrapped, not passed directly: a listener receives the click event, which
+// would arrive as startDaily's options argument.
+dom.dailyBtn.addEventListener('click', () => startDaily());
 
 // "Play again" repeats the same settings; changing them is the New game sheet.
 el('again-btn').addEventListener('click', () => {
@@ -836,4 +909,5 @@ if (!readRaw('hangdle:seen')) {
   el('help-dialog').showModal();
 }
 
-startDaily();
+startDaily({ enter: false });
+setScreen('home');
