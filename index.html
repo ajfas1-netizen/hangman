@@ -244,13 +244,18 @@
     <p class="hint" id="name-hint">Letters, numbers, dashes. Up to 12.</p>
   </div>
 
-  <div class="field">
+  <div class="field" id="board-paste">
     <label class="field-label" for="paste-input">Paste a friend's result</label>
     <textarea id="paste-input" rows="3" spellcheck="false" placeholder="Paste their whole shared message — the code is picked out of it."></textarea>
     <div class="name-row">
       <button class="primary-btn" id="paste-add">Add result</button>
       <span class="paste-note" id="paste-note" role="status" aria-live="polite"></span>
     </div>
+  </div>
+
+  <div class="sync-row">
+    <span class="sync-note" id="board-sync" role="status" aria-live="polite"></span>
+    <button class="ghost-btn" id="board-refresh">Refresh</button>
   </div>
 
   <h3 id="board-day-title">Today</h3>

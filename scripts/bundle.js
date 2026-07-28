@@ -23,12 +23,14 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 
 /** Dependency order: each file may only use names declared above it. */
 const ORDER = [
+  'src/config.js',
   'src/words.js',
   'src/engine.js',
   'src/daily.js',
   'src/storage.js',
   'src/share.js',
   'src/score.js',
+  'src/remote.js',
   'src/main.js',
 ];
 

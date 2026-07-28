@@ -100,7 +100,23 @@ Ranking is survivors first, then least damage (body + rope — the tracks cost d
 
 The checksum catches a mangled paste — a truncated message, a stray character from a chat client. **It is not anti-cheat.** Anyone who reads `src/score.js` can mint a code claiming a perfect game. For a group of friends that's the right trade: no accounts, no backend, nothing to sign up for, and the link still works for anyone you send it to.
 
-If you outgrow that, the upgrade is a real backend — a free Cloudflare Worker or Supabase project would do it, posting results to shared storage and dropping the paste step entirely. That needs an account and a URL; the frontend is already structured for it (`src/score.js` owns the encoding, `src/storage.js` owns persistence).
+### Connecting Supabase
+
+Fill in a project and the paste step disappears: results post to a shared table and everyone sees the same board. Three steps.
+
+1. Run `supabase/setup.sql` in the Supabase SQL editor. It creates the `scores` table, a unique index on (puzzle, name), and row-level security policies.
+2. Copy your project URL and **anon** key from Project Settings → API.
+3. Paste them into `src/config.js` and push.
+
+Both values are safe to commit. The anon key is public by design — it ships inside a page anyone can view — so the policies are what matter, and they allow exactly two things: insert a score, read scores. No updates, no deletes, no access to anything else. **Never put the `service_role` key in `config.js`**; that one bypasses every policy.
+
+Constraints in the SQL reject malformed rows (name pattern, sane ranges), and the unique index means your first result for a puzzle is the one that stands — replaying can't improve your score. A repeat submission comes back as `409`, which the client reads as "already recorded" rather than an error.
+
+This still isn't anti-cheat: anyone can post a perfect score under any name. It removes the paste step, which is the point. Deleting a bogus entry is a one-line `delete` in the SQL editor.
+
+Leave `config.js` empty and everything falls back to pasted codes. If the project is unreachable the game says so and keeps playing from local results — the leaderboard never blocks a game.
+
+Note that the offline-capable single-file bundle can't reach Supabase when it's hosted somewhere with a strict content-security policy; the deployed site is where the shared board works.
 
 ## Look
 
