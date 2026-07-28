@@ -6,7 +6,7 @@
 -- the anon role insert a score and read scores, and nothing else — no updates,
 -- no deletes, no reading anything else in the project.
 
-create table if not exists public.scores (
+create table if not exists public.hangdle_scores (
   id          bigint generated always as identity primary key,
   puzzle      integer     not null check (puzzle > 0 and puzzle < 100000),
   name        text        not null check (name ~ '^[A-Za-z0-9_-]{1,12}$'),
@@ -20,27 +20,27 @@ create table if not exists public.scores (
 -- One result per player per puzzle. Your first result stands, so replaying a
 -- puzzle can't be used to improve your score. A second submit returns 409,
 -- which the client reads as "already recorded" rather than an error.
-create unique index if not exists scores_puzzle_name_idx
-  on public.scores (puzzle, lower(name));
+create unique index if not exists hangdle_scores_puzzle_name_idx
+  on public.hangdle_scores (puzzle, lower(name));
 
 -- Keep the board readable without scanning the whole table as it grows.
-create index if not exists scores_puzzle_idx on public.scores (puzzle desc);
+create index if not exists hangdle_scores_puzzle_idx on public.hangdle_scores (puzzle desc);
 
-alter table public.scores enable row level security;
+alter table public.hangdle_scores enable row level security;
 
-drop policy if exists "anyone can read scores" on public.scores;
-create policy "anyone can read scores"
-  on public.scores for select
+drop policy if exists "anyone can read hangdle scores" on public.hangdle_scores;
+create policy "anyone can read hangdle scores"
+  on public.hangdle_scores for select
   to anon, authenticated
   using (true);
 
-drop policy if exists "anyone can add a score" on public.scores;
-create policy "anyone can add a score"
-  on public.scores for insert
+drop policy if exists "anyone can add a hangdle score" on public.hangdle_scores;
+create policy "anyone can add a hangdle score"
+  on public.hangdle_scores for insert
   to anon, authenticated
   with check (true);
 
 -- No update or delete policy exists, so with RLS on, neither is possible for
 -- the anon role. Removing a bogus entry is a job for the SQL editor:
 --
---   delete from public.scores where name = 'whoever' and puzzle = 209;
+--   delete from public.hangdle_scores where name = 'whoever' and puzzle = 209;

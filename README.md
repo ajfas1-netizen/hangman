@@ -104,7 +104,7 @@ The checksum catches a mangled paste — a truncated message, a stray character 
 
 Fill in a project and the paste step disappears: results post to a shared table and everyone sees the same board. Three steps.
 
-1. Run `supabase/setup.sql` in the Supabase SQL editor. It creates the `scores` table, a unique index on (puzzle, name), and row-level security policies.
+1. Run `supabase/setup.sql` in the Supabase SQL editor. It creates the `hangdle_scores` table, a unique index on (puzzle, name), and row-level security policies.
 2. Copy your project URL and **anon** key from Project Settings → API.
 3. Paste them into `src/config.js` and push.
 

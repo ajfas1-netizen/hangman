@@ -55,7 +55,7 @@ test('a score posts to the scores table with the anon key', async () => {
       assert.equal(await remote.submitScore(entry), 'saved');
     },
   );
-  assert.equal(seen.url, 'https://example.supabase.co/rest/v1/scores');
+  assert.equal(seen.url, 'https://example.supabase.co/rest/v1/hangdle_scores');
   assert.equal(seen.options.method, 'POST');
   assert.equal(seen.options.headers.apikey, 'anon-key');
   assert.deepEqual(JSON.parse(seen.options.body), {

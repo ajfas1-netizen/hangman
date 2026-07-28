@@ -14,7 +14,8 @@
  */
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
-const TABLE = 'scores';
+// Prefixed so it cannot collide with a `scores` table already in the project.
+const TABLE = 'hangdle_scores';
 const COLUMNS = 'puzzle,name,won,body,rope,guesses';
 
 export function isConfigured() {
