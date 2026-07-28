@@ -22,7 +22,7 @@ export function shareGrid(state) {
 }
 
 export function shareText(state, { number, url = '' } = {}) {
-  const title = number ? `Gallows #${number}` : 'Gallows';
+  const title = number ? `Cinch #${number}` : 'Cinch';
   const outcome = state.status === WON ? 'survived' : state.status === LOST ? 'hanged' : 'unfinished';
   const { maxMisses, maxNears } = state.limits;
   const lines = [

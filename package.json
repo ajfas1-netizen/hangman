@@ -1,5 +1,5 @@
 {
-  "name": "gallows",
+  "name": "cinch",
   "version": "0.1.0",
   "private": true,
   "description": "Hangman crossed with Wordle — guess the letter and the slot it sits in.",

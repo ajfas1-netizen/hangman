@@ -1,5 +1,5 @@
 /**
- * Gallows — UI controller.
+ * Cinch — UI controller.
  *
  * Input is deliberately two-step: choose a slot, choose a letter, then commit
  * with Enter. Every guess costs something, so a stray keypress must never fire
@@ -520,8 +520,8 @@ for (const [selector, value] of [
 }
 
 // First visit gets the rules unprompted — the two-track scoring needs explaining.
-if (!localStorage.getItem('gallows:seen')) {
-  try { localStorage.setItem('gallows:seen', '1'); } catch { /* fine */ }
+if (!localStorage.getItem('cinch:seen')) {
+  try { localStorage.setItem('cinch:seen', '1'); } catch { /* fine */ }
   el('help-dialog').showModal();
 }
 

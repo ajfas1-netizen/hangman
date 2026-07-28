@@ -1,6 +1,8 @@
-# Gallows
+# Cinch
 
 Hangman crossed with Wordle. You don't just guess the letter — you guess **which slot it sits in**.
+
+Named for what a near miss does: you knew the letter, you put it in the wrong place, and the rope draws a notch tighter. The other meaning is a joke at the player's expense.
 
 Play: `npm start`, then open http://localhost:8080. No build step, no dependencies, no backend.
 
@@ -20,17 +22,20 @@ That price on a near miss is what keeps the game honest. If probing were free, t
 
 ### Why the rope is shorter
 
-Equal track lengths are not equal pressure. Near misses accrue more slowly than outright misses, so at 6/6 the rope almost never decides anything — simulating every word in the pools put just **14%** of deaths on it. Five splits deaths 43/57 between rope and body while keeping a strong bot near a 90% win rate:
+Equal track lengths are not equal pressure. Near misses accrue more slowly than outright misses, so at 6/6 the rope almost never decides anything.
 
-| body / rope | bot win rate | rope's share of deaths |
-|---|---|---|
-| 6 / 6 | 93% | 14% |
-| **6 / 5** | **90%** | **43%** |
-| 5 / 4 | 71% | 45% |
+`scripts/simulate.js` plays every word in the pools with two players. The **candidate bot** keeps every word still consistent with the feedback and calls the answer the moment one remains — a ceiling no person reaches. The **human model** tracks only what a person plausibly holds in their head (dead letters, per-slot eliminations, which letters like which positions) and calls the word when the visible pattern admits only one — a floor. Real players sit between them.
 
-Four balances just as well but costs too much difficulty. Note that the bot has perfect recall of every word still consistent with the feedback and calls the answer the moment one candidate remains — read its win rate as a ceiling, not a forecast for humans.
+| body / rope | bot win | rope's share | human win | rope's share |
+|---|---|---|---|---|
+| 6 / 6 | 93% | 14% | 39% | 22% |
+| **6 / 5** | **90%** | **43%** | **33%** | **32%** |
+| 6 / 4 | 81% | 70% | 27% | 46% |
+| 5 / 4 | 71% | 45% | 19% | 39% |
 
-Both limits live at the top of `src/engine.js`, and `createGame` takes per-game overrides. Re-measure with `node scripts/simulate.js --grid` if the word pools change materially.
+Five is the only length that keeps the rope responsible for roughly a third to a half of deaths under *both* models. Six makes it decoration for a strong player. Four makes it dominant for a strong player and merely balanced for a weak one, while pushing the win rate toward a coin flip.
+
+Both limits live at the top of `src/engine.js`, and `createGame` takes per-game overrides. Re-measure with `node scripts/simulate.js --compare` if the word pools change materially.
 
 ### No counting
 
@@ -101,6 +106,7 @@ src/main.js         UI controller
 test/               node --test
 scripts/serve.js    static server for local play
 scripts/check-words.js
+scripts/simulate.js     balance simulator (candidate bot + human model)
 ```
 
 The engine is pure and DOM-free, so the rules are testable on their own and portable if this ever wants a native front end.
@@ -113,6 +119,7 @@ npm run words     # validate the answer pools
 npm run words:fix # drop bad entries, dedupe, sort
 npm start         # serve on :8080
 
+node scripts/simulate.js --compare         # bot vs human model at each setting
 node scripts/simulate.js --grid            # balance sweep over both tracks
 node scripts/simulate.js --body 6 --rope 5 # measure one setting
 ```

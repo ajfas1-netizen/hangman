@@ -1,5 +1,5 @@
 /**
- * Gallows — game engine.
+ * Cinch — game engine.
  *
  * A guess is a (letter, slot) pair. Three outcomes:
  *
@@ -28,12 +28,20 @@ export const MAX_MISSES = 6;
 
 /**
  * Five, not six. Near misses accrue more slowly than outright misses, so equal
- * track lengths are not equal pressure: simulating every word in the pools at
- * 6/6 put only 14% of deaths on the rope, which makes it decoration. Five
- * splits deaths 43/57 between rope and body while keeping a strong bot around
- * a 90% win rate. Dropping to 4 balances just as well but costs too much
- * difficulty (bot falls to 71%). Re-measure with scripts/simulate.js --grid
- * if the word pools change materially.
+ * track lengths are not equal pressure.
+ *
+ * Simulating every word in the pools (scripts/simulate.js --compare) against
+ * both a perfect-recall bot and a human-shaped model:
+ *
+ *              bot win / rope's share    human win / rope's share
+ *   6 / 6         93%  /  14%               39%  /  22%
+ *   6 / 5         90%  /  43%               33%  /  32%
+ *   6 / 4         81%  /  70%               27%  /  46%
+ *
+ * Real players sit between those columns, so five is the length that keeps the
+ * rope responsible for roughly a third to a half of deaths under either model.
+ * Six makes it decoration for a strong player; four makes it dominant for one,
+ * balanced for a weak one, and pushes the win rate toward a coin flip.
  */
 export const MAX_NEARS = 5;
 export const SOLVE_PENALTY = 2;

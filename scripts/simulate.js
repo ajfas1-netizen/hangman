@@ -25,14 +25,102 @@ const arg = (name, fallback) => {
   return i === -1 ? fallback : Number(process.argv[i + 1]);
 };
 
-/** Replay the real game's guesses against a candidate; keep it only if every result matches. */
+/**
+ * Replay the real game's guesses against a candidate; keep it only if every
+ * result matches.
+ *
+ * The probe gets unlimited tracks. With real limits it can hit a track partway
+ * through the replay, after which every further guess is rejected as 'over' and
+ * the candidate is discarded for the wrong reason — which silently skews the
+ * measurements this whole script exists to produce.
+ */
+const NO_LIMITS = { maxMisses: Infinity, maxNears: Infinity };
+
 function consistent(candidate, history) {
-  const probe = createGame(candidate);
+  const probe = createGame(candidate, NO_LIMITS);
   for (const h of history) {
     if (h.solve) continue;
     if (guess(probe, h.letter, h.index).result !== h.result) return false;
   }
   return true;
+}
+
+/**
+ * A human-shaped player, for difficulty estimates the candidate bot can't give.
+ *
+ * Real people do not hold eight hundred still-possible words in their head.
+ * They remember which letters are dead, which are known to be in there, and
+ * roughly which letters like which positions — and they recognise the word once
+ * enough of it is showing. That is what this models: positional letter
+ * frequency, a bias toward letters already known to be present, and a call the
+ * moment the visible pattern admits only one word.
+ *
+ * It is a model, not a measurement of real players. Treat its win rate as a
+ * floor the way the candidate bot's is a ceiling; the truth sits between them.
+ */
+const freqCache = new Map();
+
+function positionalFrequency(length) {
+  if (!freqCache.has(length)) {
+    const table = Array.from({ length }, () => new Map());
+    for (const word of WORDS[length]) {
+      for (let i = 0; i < length; i++) table[i].set(word[i], (table[i].get(word[i]) ?? 0) + 1);
+    }
+    freqCache.set(length, table);
+  }
+  return freqCache.get(length);
+}
+
+/** The one word still matching what is visible on the board, if there is exactly one. */
+function readableWord(game) {
+  let found = null;
+  for (const word of WORDS[game.length]) {
+    let ok = true;
+    for (let i = 0; i < game.length && ok; i++) {
+      if (game.slots[i] !== null) ok = word[i] === game.slots[i];
+      else if (game.dead.has(word[i]) || game.excluded[i].has(word[i])) ok = false;
+    }
+    if (!ok) continue;
+    if (found) return null;
+    found = word;
+  }
+  return found;
+}
+
+function humanMove(game) {
+  const table = positionalFrequency(game.length);
+  let best = null;
+  let bestScore = -1;
+
+  for (let slot = 0; slot < game.length; slot++) {
+    if (game.slots[slot] !== null) continue;
+    for (const [letter, count] of table[slot]) {
+      if (game.dead.has(letter) || game.excluded[slot].has(letter)) continue;
+      // Chase a letter you already know is in there before trying a fresh one.
+      const score = count * (game.live.has(letter) ? 2.5 : 1);
+      if (score > bestScore) {
+        bestScore = score;
+        best = { letter, slot };
+      }
+    }
+  }
+  return best;
+}
+
+function playHuman(answer, limits) {
+  const game = createGame(answer, limits);
+
+  for (let turn = 0; turn < 60 && game.status === PLAYING; turn++) {
+    const seen = readableWord(game);
+    if (seen) {
+      solve(game, seen);
+      break;
+    }
+    const move = humanMove(game);
+    if (!move) break;
+    guess(game, move.letter, move.slot);
+  }
+  return game;
 }
 
 /** The (letter, slot) pair the most candidates agree on, skipping moves the game would reject. */
@@ -57,7 +145,18 @@ function bestMove(game, candidates) {
   return best;
 }
 
-function playOne(answer, limits) {
+function playOne(answer, limits, human) {
+  if (human) {
+    const g = playHuman(answer, limits);
+    return {
+      won: g.status === WON,
+      misses: g.misses,
+      nears: g.nears,
+      killedBy: g.status === WON ? null : g.nears >= limits.maxNears ? 'rope' : 'body',
+      guesses: g.history.length,
+    };
+  }
+
   const game = createGame(answer, limits);
   let candidates = WORDS[answer.length];
 
@@ -84,14 +183,14 @@ function playOne(answer, limits) {
   };
 }
 
-function run({ body, rope, games }) {
+function run({ body, rope, games, human }) {
   const limits = { maxMisses: body, maxNears: rope };
   const results = [];
 
   for (const length of LENGTHS) {
     const pool = WORDS[length];
     const step = Math.max(1, Math.floor(pool.length / Math.ceil(games / LENGTHS.length)));
-    for (let i = 0; i < pool.length; i += step) results.push({ length, ...playOne(pool[i], limits) });
+    for (let i = 0; i < pool.length; i += step) results.push({ length, ...playOne(pool[i], limits, human) });
   }
 
   const wins = results.filter((r) => r.won);
@@ -125,10 +224,21 @@ function report(r) {
 }
 
 const games = arg('games', 240);
+const human = process.argv.includes('--human');
 
-if (process.argv.includes('--sweep')) {
+if (process.argv.includes('--compare')) {
+  console.log(`Candidate bot (ceiling) vs human model (floor), ~${games} games each.\n`);
+  for (const [body, rope] of [[6, 6], [6, 5], [6, 4], [5, 4]]) {
+    const bot = run({ body, rope, games });
+    const man = run({ body, rope, games, human: true });
+    console.log(
+      `body ${body} rope ${rope}  |  bot ${pct(bot.winRate).padStart(4)} (rope ${pct(bot.ropeShareOfDeaths).padStart(4)} of deaths)` +
+      `  |  human ${pct(man.winRate).padStart(4)} (rope ${pct(man.ropeShareOfDeaths).padStart(4)} of deaths)`,
+    );
+  }
+} else if (process.argv.includes('--sweep')) {
   console.log(`Sweeping rope length, body fixed at 6, ~${games} games each.\n`);
-  for (const rope of [2, 3, 4, 5, 6, 8]) report(run({ body: 6, rope, games }));
+  for (const rope of [2, 3, 4, 5, 6, 8]) report(run({ body: 6, rope, games, human }));
 } else if (process.argv.includes('--grid')) {
   // Balance means neither track dominates the deaths. Because near misses
   // accrue more slowly than outright misses, that balance point is not at
@@ -138,7 +248,7 @@ if (process.argv.includes('--sweep')) {
   const rows = [];
   for (const body of [4, 5, 6, 7]) {
     for (const rope of [3, 4, 5, 6]) {
-      const r = run({ body, rope, games });
+      const r = run({ body, rope, games, human });
       rows.push(r);
       report(r);
     }
@@ -153,5 +263,5 @@ if (process.argv.includes('--sweep')) {
     console.log(`  body ${r.body} rope ${r.rope}  rope share ${pct(r.ropeShareOfDeaths)}  win ${pct(r.winRate)}`);
   }
 } else {
-  report(run({ body: arg('body', 6), rope: arg('rope', 6), games }));
+  report(run({ body: arg("body", 6), rope: arg("rope", 6), games, human }));
 }
