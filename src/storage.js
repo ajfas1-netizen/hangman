@@ -4,7 +4,10 @@
  * unavailable (private windows, disabled cookies) — the game still plays, it
  * just forgets.
  */
-import { PLAYING } from './engine.js';
+import { PLAYING, MAX_MISSES, MAX_NEARS, SOLVE_PENALTY } from './engine.js';
+
+/** Fallback for games saved before limits were stored alongside them. */
+const DEFAULT_LIMITS = { maxMisses: MAX_MISSES, maxNears: MAX_NEARS, solvePenalty: SOLVE_PENALTY };
 
 const GAME_KEY = 'gallows:daily';
 const STATS_KEY = 'gallows:stats';
@@ -38,6 +41,7 @@ function write(key, value) {
 export function serializeGame(state) {
   return {
     word: state.word,
+    limits: state.limits,
     slots: state.slots,
     misses: state.misses,
     nears: state.nears,
@@ -55,6 +59,7 @@ export function deserializeGame(raw) {
   return {
     word: raw.word,
     length: raw.word.length,
+    limits: raw.limits ?? DEFAULT_LIMITS,
     slots: raw.slots,
     misses: raw.misses,
     nears: raw.nears,

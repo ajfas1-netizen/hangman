@@ -42,13 +42,25 @@ export const BODY_PARTS = ['head', 'torso', 'armLeft', 'armRight', 'legLeft', 'l
 
 const LETTER = /^[a-z]$/;
 
-export function createGame(word) {
+/**
+ * @param word    the answer
+ * @param limits  optional overrides — the two track lengths and the cost of a
+ *                wrong call. Carried on the game rather than read from the
+ *                module constants so balance can be tuned and simulated
+ *                without touching the rules.
+ */
+export function createGame(word, limits = {}) {
   const answer = String(word).toLowerCase();
   if (!/^[a-z]+$/.test(answer)) throw new Error(`invalid word: ${word}`);
 
   return {
     word: answer,
     length: answer.length,
+    limits: {
+      maxMisses: limits.maxMisses ?? MAX_MISSES,
+      maxNears: limits.maxNears ?? MAX_NEARS,
+      solvePenalty: limits.solvePenalty ?? SOLVE_PENALTY,
+    },
     slots: Array(answer.length).fill(null),
     misses: 0,
     nears: 0,
@@ -143,7 +155,7 @@ export function solve(state, attempt) {
     return { result: 'solved' };
   }
 
-  state.misses += SOLVE_PENALTY;
+  state.misses += state.limits.solvePenalty;
   state.history.push({ solve: true, correct: false });
   settle(state);
   return { result: 'wrong-solve' };
@@ -151,7 +163,7 @@ export function solve(state, attempt) {
 
 function settle(state) {
   if (state.status !== PLAYING) return;
-  if (state.misses >= MAX_MISSES || state.nears >= MAX_NEARS) {
+  if (state.misses >= state.limits.maxMisses || state.nears >= state.limits.maxNears) {
     state.status = LOST;
   } else if (state.slots.every((s) => s !== null)) {
     state.status = WON;
@@ -185,7 +197,7 @@ export function excludedAt(state, index) {
 
 export function lifeRemaining(state) {
   return {
-    misses: Math.max(0, MAX_MISSES - state.misses),
-    nears: Math.max(0, MAX_NEARS - state.nears),
+    misses: Math.max(0, state.limits.maxMisses - state.misses),
+    nears: Math.max(0, state.limits.maxNears - state.nears),
   };
 }
