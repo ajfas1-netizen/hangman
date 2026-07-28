@@ -92,6 +92,7 @@ function firstEmptySlot() {
 
 function buildBoard() {
   dom.board.replaceChildren();
+  dom.board.style.setProperty('--slots', String(view.game.length));
   for (let i = 0; i < view.game.length; i++) {
     const b = document.createElement('button');
     b.className = 'slot';

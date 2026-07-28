@@ -65,6 +65,28 @@ An in-progress daily survives a refresh. Practice mode gives unlimited random wo
 
 Results share as an emoji grid that wraps at the word length, so it comes out the same shape as the puzzle. A square's position says nothing about which slot was guessed, so it spoils nothing.
 
+## Look
+
+Cool ink base, warm lamplight falling across it. The contrast between a cold
+shadow and a warm light source is what makes the scene read as lit rather than
+drawn — a flat brown-on-brown palette reads as clip-art no matter how good the
+geometry is.
+
+The figure draws itself on via `stroke-dashoffset` rather than popping into
+place, and the noose gains slanted wraps stacked upward from the neck. Two
+notes for anyone editing the SVG:
+
+- The gradients use `gradientUnits="userSpaceOnUse"`. A bbox-relative gradient
+  renders *nothing* on a perfectly vertical or horizontal line, because the
+  bounding box has zero width or height — which silently erased the post, the
+  beam and the rope the first time round.
+- Wraps are slanted and close-set on purpose. A single flat wrap centred on the
+  rope just reads as a crossbar.
+
+Letter states on the keyboard differ by treatment, not only hue — solid fill for
+placed, outline plus a dot for in-the-word, struck through for dead. Green
+against amber alone fails for a good share of players.
+
 ## Layout
 
 ```
