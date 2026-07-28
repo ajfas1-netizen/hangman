@@ -233,7 +233,9 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-body > *:not(.grain) { position: relative; z-index: 1; }
+/* The drag chip is excluded: this rule outranks `.drag-chip { position: fixed }`
+   and would drop it into normal flow, where it is invisible. */
+body > *:not(.grain):not(.drag-chip) { position: relative; z-index: 1; }
 
 /* ---------------------------------------------------------------- top bar */
 
@@ -691,6 +693,52 @@ body[data-screen="home"] .gallows { max-height: 17rem; }
   outline-offset: -2.5px;
   transform: translateY(-1.5px);
 }
+
+/* Enter is the commit for every guess, so it earns the accent — but only once
+   a letter is actually waiting, or it reads as the thing to press at all times. */
+.key[data-action="enter"].armed {
+  background: linear-gradient(180deg, var(--hit-solid-a), var(--hit-solid-b));
+  color: var(--hit-ink);
+  border-color: transparent;
+  box-shadow: 0 0 18px -5px var(--hit-glow);
+}
+
+/* ---------------------------------------------------------------- dragging */
+
+/* Letter keys own the gesture, so the page must not steal it for scrolling.
+   Only the letters — Enter and Clear stay ordinary buttons. */
+.key[data-key] { touch-action: none; }
+
+.key.lifted { opacity: 0.35; }
+
+.drag-chip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--ink-700), var(--ink-750));
+  box-shadow: var(--edge), 0 10px 24px -8px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--rope);
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.slot.drop-target {
+  border-color: var(--rope);
+  box-shadow: var(--edge), 0 0 0 4px var(--rope-ring), 0 0 22px -4px var(--rope-glow-strong);
+  transform: translateY(-3px) scale(1.04);
+}
+
+/* While dragging, empty slots advertise themselves as targets. */
+body.dragging .slot:not(.filled):not(:disabled) { border-style: dashed; }
+body.dragging { cursor: grabbing; }
 
 /* ---------------------------------------------------------------- buttons */
 

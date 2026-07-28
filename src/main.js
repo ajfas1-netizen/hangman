@@ -205,16 +205,21 @@ function buildKeyboard() {
     const div = document.createElement('div');
     div.className = 'kb-row';
 
-    if (r === 2) div.append(actionKey('Enter', 'enter'));
+    // Clear left, Enter right: every phone keyboard puts return under the right
+    // thumb, and Enter is the commit for every guess, so it belongs there.
+    if (r === 2) div.append(actionKey('Clear', 'clear'));
     for (const ch of row) {
       const b = document.createElement('button');
       b.className = 'key';
       b.dataset.key = ch;
       b.textContent = ch;
-      b.addEventListener('click', () => setPending(ch));
+      b.addEventListener('click', () => {
+        if (swallowClick) { swallowClick = false; return; }
+        setPending(ch);
+      });
       div.append(b);
     }
-    if (r === 2) div.append(actionKey('Clear', 'clear'));
+    if (r === 2) div.append(actionKey('Enter', 'enter'));
 
     dom.keyboard.append(div);
   });
@@ -223,6 +228,7 @@ function buildKeyboard() {
 function actionKey(label, action) {
   const b = document.createElement('button');
   b.className = 'key wide';
+  b.dataset.action = action;
   b.textContent = label;
   b.addEventListener('click', () => (action === 'enter' ? commit() : setPending(null)));
   return b;
@@ -315,6 +321,107 @@ function submitCall(word) {
   finishIfOver();
 }
 
+/* ---------------------------------------------------------------- dragging */
+
+/**
+ * Drag a letter from the keyboard onto a slot.
+ *
+ * This is the gesture the game is actually about — you are placing a letter in
+ * a position — so on a touchscreen it beats tap-slot, tap-letter, tap-Enter.
+ * A drop commits immediately: unlike a stray tap, a drag across the screen is
+ * unambiguous intent, which is what the two-step commit exists to protect
+ * against. Tapping still works exactly as before, and is the only path for
+ * keyboard and screen-reader users.
+ */
+const DRAG_THRESHOLD = 8;   // px before a press becomes a drag rather than a tap
+let drag = null;
+let swallowClick = false;
+
+function dropTargetAt(x, y) {
+  const slot = document.elementFromPoint(x, y)?.closest?.('.slot');
+  return slot && !slot.disabled ? slot : null;
+}
+
+function beginDrag() {
+  drag.active = true;
+  document.body.classList.add('dragging');
+  drag.key.classList.add('lifted');
+
+  drag.chip = document.createElement('div');
+  drag.chip.className = 'drag-chip';
+  drag.chip.textContent = drag.letter;
+  document.body.append(drag.chip);
+}
+
+function moveDrag(x, y) {
+  drag.chip.style.transform = `translate(${x}px, ${y}px) translate(-50%, -140%)`;
+
+  const target = dropTargetAt(x, y);
+  if (target === drag.target) return;
+  drag.target?.classList.remove('drop-target');
+  target?.classList.add('drop-target');
+  drag.target = target;
+}
+
+function endDrag(commitIt) {
+  if (drag.active) {
+    drag.chip.remove();
+    drag.key.classList.remove('lifted');
+    drag.target?.classList.remove('drop-target');
+    document.body.classList.remove('dragging');
+
+    // A drag that ends on the key it began on still fires a click, which would
+    // arm a second letter. Swallow exactly that one — and only that one, since
+    // a drag ending elsewhere fires no click at all and the flag would
+    // otherwise sit set and eat the next real tap.
+    swallowClick = true;
+    setTimeout(() => { swallowClick = false; }, 0);
+  }
+
+  const target = commitIt ? drag.target : null;
+  const letter = drag.letter;
+  drag = null;
+
+  if (!target) return;
+  view.selected = Number(target.dataset.slot);
+  view.pending = letter;
+  commit();
+}
+
+dom.keyboard.addEventListener('pointerdown', (event) => {
+  if (view.game.status !== PLAYING) return;
+  const key = event.target.closest('.key[data-key]');
+  if (!key || key.disabled) return;
+
+  drag = { letter: key.dataset.key, key, startX: event.clientX, startY: event.clientY, active: false, chip: null, target: null };
+});
+
+/*
+ * Move and release are watched on the document, not the keyboard, and nothing
+ * calls setPointerCapture. Capturing on the keyboard retargets the click that
+ * follows a plain tap to the keyboard itself, so the per-key handler never
+ * runs and tapping a letter silently stops working. Touch pointers capture to
+ * their own target implicitly, so their moves still bubble here anyway.
+ */
+document.addEventListener('pointermove', (event) => {
+  if (!drag) return;
+  if (!drag.active) {
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < DRAG_THRESHOLD) return;
+    beginDrag();
+  }
+  moveDrag(event.clientX, event.clientY);
+});
+
+document.addEventListener('pointerup', (event) => {
+  if (!drag) return;
+  if (drag.active) moveDrag(event.clientX, event.clientY);
+  endDrag(true);
+});
+
+document.addEventListener('pointercancel', () => {
+  if (drag) endDrag(false);
+});
+
 /* ---------------------------------------------------------------- render */
 
 function render() {
@@ -374,6 +481,9 @@ function render() {
     key.disabled = g.status !== PLAYING || state === 'dead';
     key.setAttribute('aria-label', `${ch}, ${KEY_LABEL[state]}`);
   }
+
+  const enter = dom.keyboard.querySelector('[data-action="enter"]');
+  if (enter) enter.classList.toggle('armed', Boolean(view.pending) && g.status === PLAYING);
 
   renderActions();
   renderTracks();
