@@ -60,7 +60,17 @@ Wordle only needs the first kind, which is why one keyboard row carries all of i
 
 Pick a slot, pick a letter, press **Enter** to commit. The two-step commit is deliberate: every guess costs something, so a stray keypress must never fire one off.
 
-Arrow keys move between empty slots, Backspace clears the pending letter, and clicking a slot selects it.
+Arrow keys move between empty slots, Backspace clears the pending letter, and clicking a slot selects it. **Enter sits at the bottom right** of the on-screen keyboard, where every phone keyboard puts return, and takes the accent colour only once a letter is actually waiting.
+
+### Dragging
+
+On a touchscreen you can **drag a letter straight onto a slot**, which is the gesture the game is actually about — you are putting a letter in a position. A drop commits immediately: unlike a stray tap, a drag across the screen is unambiguous intent, which is what the two-step commit exists to guard against. Tapping still works unchanged, and remains the only path for keyboard and screen-reader users.
+
+Three things this needs, each of which silently breaks it:
+
+- `touch-action: none` on the letter keys only, so the page doesn't take the gesture for scrolling. Enter and Clear stay ordinary buttons.
+- **No `setPointerCapture`.** Capturing on the keyboard retargets the `click` that follows a plain tap, so the per-key handler never runs and tapping a letter stops working. Move and release are watched on the document instead; touch pointers capture to their own target implicitly, so their events still bubble up.
+- The chip is excluded from `body > *:not(.grain)`, which sets `position: relative` and outranks `.drag-chip { position: fixed }` — the chip then lands in normal flow, off-screen, while every functional test still passes.
 
 ## Home screen
 
