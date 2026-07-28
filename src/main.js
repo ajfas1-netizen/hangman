@@ -16,7 +16,7 @@ import {
   playerName, setPlayerName, loadBoard, addToBoard, clearBoard,
 } from './storage.js';
 import { scoreOf, encodeResult, decodeResult, rank, tally, NAME_PATTERN } from './score.js';
-import { isConfigured, submitScore, fetchScores } from './remote.js';
+import { isConfigured, submitScore, fetchScores, lastError } from './remote.js';
 import { shareGrid, shareText, copyToClipboard } from './share.js';
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -635,8 +635,9 @@ async function refreshRemote() {
   syncNote('Syncing…');
   const rows = await fetchScores();
   remoteRows = rows;
-  syncNote(rows ? `Synced — ${rows.length} result${rows.length === 1 ? '' : 's'} from the group.`
-                : "Couldn't reach the leaderboard. Showing what's on this device.");
+  syncNote(rows
+    ? `Synced — ${rows.length} result${rows.length === 1 ? '' : 's'} from the group.`
+    : `Leaderboard unavailable (${lastError() ?? 'unknown'}). Showing what's on this device.`);
   renderBoard();
 }
 
