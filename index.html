@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Hangman crossed with Wordle. Guess the letter — and the slot it sits in.">
+<meta name="theme-color" content="#0d0f13">
+<title>Hangdle</title>
+<link rel="stylesheet" href="styles.css">
+<script>
+  /* Runs before first paint so the page never flashes the wrong theme.
+     Precedence: the player's own choice, then a theme the host already stamped
+     on <html> (embedders that manage theme themselves), then the system. */
+  (function () {
+    var root = document.documentElement, host = root.dataset.theme, theme;
+    var stored = null;
+    try { stored = localStorage.getItem('hangdle:theme'); } catch (e) { /* private window */ }
+
+    if (stored === 'light' || stored === 'dark') theme = stored;
+    else if (host === 'light' || host === 'dark') theme = host;
+    else theme = window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
+    root.dataset.theme = theme;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === 'light' ? '#f5f1e9' : '#0d0f13';
+  })();
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🪢</text></svg>">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="topbar">
+  <button class="icon-btn" id="help-btn" aria-label="How to play" title="How to play">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+      <path d="M9.2 9a2.9 2.9 0 1 1 3.8 2.8c-.7.25-1 .9-1 1.7v.4"/><circle cx="12" cy="17.6" r="1.15" fill="currentColor" stroke="none"/>
+    </svg>
+  </button>
+
+  <h1 class="wordmark">Hangdle</h1>
+
+  <div class="topbar-right">
+    <button class="icon-btn" id="theme-btn" aria-label="Switch theme" title="Switch theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2z"/>
+      </svg>
+    </button>
+
+    <button class="icon-btn" id="stats-btn" aria-label="Statistics" title="Statistics">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+        <path d="M4 20V13.5M12 20V5M20 20v-9"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="stage" aria-label="The gallows">
+    <div class="gallows-wrap">
+      <svg class="gallows" viewBox="0 0 220 262" role="img" aria-labelledby="gallows-desc">
+        <title id="gallows-desc">Gallows</title>
+        <defs>
+          <!-- User-space, not objectBoundingBox: a perfectly vertical or
+               horizontal line has a zero-width or zero-height bounding box, and
+               a bbox-relative gradient on one renders nothing at all. -->
+          <linearGradient id="g-wood" gradientUnits="userSpaceOnUse" x1="40" y1="20" x2="170" y2="250">
+            <stop offset="0%"   stop-color="var(--wood-hi)"/>
+            <stop offset="55%"  stop-color="var(--wood)"/>
+            <stop offset="100%" stop-color="var(--wood-lo)"/>
+          </linearGradient>
+          <linearGradient id="g-rope" gradientUnits="userSpaceOnUse" x1="152" y1="24" x2="174" y2="70">
+            <stop offset="0%"   stop-color="var(--rope-hi)"/>
+            <stop offset="100%" stop-color="var(--rope-lo)"/>
+          </linearGradient>
+          <linearGradient id="g-figure" gradientUnits="userSpaceOnUse" x1="138" y1="66" x2="196" y2="200">
+            <stop offset="0%"   stop-color="var(--figure-hi)"/>
+            <stop offset="100%" stop-color="var(--figure-lo)"/>
+          </linearGradient>
+          <radialGradient id="g-lamp" cx="50%" cy="50%">
+            <stop offset="0%"   stop-color="var(--lamp)" stop-opacity="0.2"/>
+            <stop offset="45%"  stop-color="var(--lamp)" stop-opacity="0.07"/>
+            <stop offset="100%" stop-color="var(--lamp)" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="f-soft" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+          </filter>
+          <filter id="f-glow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="3.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Warm light falling from above the beam -->
+        <ellipse class="lamp" cx="146" cy="40" rx="140" ry="116" fill="url(#g-lamp)"/>
+
+        <g class="frame" filter="url(#f-soft)">
+          <path d="M27 247 H129"/>
+          <path d="M64 247 V26"/>
+          <path d="M64 26 H162"/>
+          <path d="M64 59 L97 26"/>
+        </g>
+        <ellipse class="ground" cx="78" cy="251" rx="60" ry="5"/>
+
+        <!-- Wraps stack upward from the neck, so the first one lands where a
+             knot actually sits. They are slanted and close-set on purpose: a
+             single flat wrap centred on the rope just reads as a crossbar. -->
+        <g class="rope">
+          <path class="rope-line" d="M162 27 V70"/>
+          <path class="coil" data-coil="1" d="M156.5 69 L167.5 67.4"/>
+          <path class="coil" data-coil="2" d="M156.5 64.5 L167.5 62.9"/>
+          <path class="coil" data-coil="3" d="M156.5 60 L167.5 58.4"/>
+          <path class="coil" data-coil="4" d="M156.5 55.5 L167.5 53.9"/>
+          <path class="coil" data-coil="5" d="M156.5 51 L167.5 49.4"/>
+          <path class="coil" data-coil="6" d="M156.5 46.5 L167.5 44.9"/>
+        </g>
+
+        <g class="body">
+          <circle class="part" data-part="head"     pathLength="1" cx="162" cy="86" r="16"/>
+          <path   class="part" data-part="torso"    pathLength="1" d="M162 102 Q164.5 130 162 158"/>
+          <path   class="part" data-part="armLeft"  pathLength="1" d="M162 116 Q147 123 136 140"/>
+          <path   class="part" data-part="armRight" pathLength="1" d="M162 116 Q177 123 188 140"/>
+          <path   class="part" data-part="legLeft"  pathLength="1" d="M162 158 Q153 178 143 200"/>
+          <path   class="part" data-part="legRight" pathLength="1" d="M162 158 Q171 178 181 200"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="tracks">
+      <div class="track" id="track-body">
+        <span class="track-label">Body</span>
+        <span class="pips" id="pips-body" aria-hidden="true"></span>
+        <span class="track-count"><span id="count-body">0</span><i>/</i><span id="max-body">6</span></span>
+      </div>
+      <div class="track" id="track-rope">
+        <span class="track-label">Rope</span>
+        <span class="pips" id="pips-rope" aria-hidden="true"></span>
+        <span class="track-count"><span id="count-rope">0</span><i>/</i><span id="max-rope">5</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="play">
+    <p class="puzzle-meta" id="puzzle-meta"></p>
+
+    <div class="board" id="board" role="group" aria-label="Word slots"></div>
+
+    <div class="deduction" id="deduction" aria-live="off"></div>
+
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+
+    <div class="keyboard" id="keyboard"></div>
+
+    <div class="actions">
+      <button class="ghost-btn" id="solve-btn">Call the word</button>
+      <button class="ghost-btn" id="result-btn" hidden>See result</button>
+      <button class="ghost-btn" id="new-btn">New game</button>
+      <button class="ghost-btn" id="daily-btn" hidden>Today's puzzle</button>
+    </div>
+  </section>
+
+</main>
+
+<dialog class="sheet" id="help-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>How to play</h2>
+  <p class="lede">Guess a letter <em>and</em> the slot it sits in.</p>
+
+  <ul class="rules">
+    <li><span class="chip chip-hit">Hit</span> The letter is in that slot. It locks in. Costs nothing.</li>
+    <li><span class="chip chip-near">Near</span> The letter is in the word, but not there. The rope tightens.</li>
+    <li><span class="chip chip-miss">Miss</span> The letter isn't in the word. A body part goes up.</li>
+  </ul>
+
+  <p>Two ways to hang: <strong><span data-max-body>6</span> body parts</strong> or <strong><span data-max-rope>5</span> rope notches</strong>. They fill independently, so a run of near misses will kill you just as surely as a run of wrong letters. The rope is the shorter track on purpose — near misses come up less often than outright wrong letters, so it takes fewer of them to matter.</p>
+
+  <h3>The catch</h3>
+  <p>Landing a letter tells you nothing about how many more of it there are. Hit the <code>O</code> in slot 3 of <code>SPOON</code> and the second <code>O</code> is still out there, unmarked. Nothing ever tells you a count.</p>
+  <p>One consequence worth knowing: once every copy of a letter is on the board, guessing it again is a <strong>miss</strong>, not a near. There's nothing left to find, and the game won't pretend otherwise.</p>
+
+  <h3>Calling the word</h3>
+  <p>Think you've got it? Call the whole word. Right wins on the spot. Wrong costs <strong><span data-solve-penalty>2</span> body parts</strong>.</p>
+
+  <h3>Modes</h3>
+  <p>The daily is always Normal. <strong>New game</strong> lets you pick a length and a mode: <strong>Hard</strong> shortens the rope to four, so near misses bite sooner; <strong>Zen</strong> removes both limits entirely — nothing can kill you, so you can just work the word out.</p>
+
+  <h3>Reading the board</h3>
+  <p>The keyboard tracks what you know about each letter overall. Each slot tracks what you've ruled out <em>for that slot</em> — select a slot to see its eliminations.</p>
+
+  <p class="footnote">A new word every day. Length ramps through the week: five letters early, seven by the weekend.</p>
+</dialog>
+
+<dialog class="sheet" id="stats-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>Statistics</h2>
+  <div class="stat-row" id="stat-row"></div>
+  <h3>Body parts used, when you survived</h3>
+  <div class="dist" id="dist"></div>
+  <button class="ghost-btn danger" id="reset-stats">Reset statistics</button>
+</dialog>
+
+<dialog class="sheet" id="end-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2 id="end-title"></h2>
+  <p class="end-word" id="end-word"></p>
+  <p class="end-note" id="end-note"></p>
+  <pre class="grid" id="end-grid"></pre>
+  <div class="end-actions">
+    <button class="primary-btn" id="share-btn">Share result</button>
+    <button class="ghost-btn" id="again-btn">Play again</button>
+    <button class="ghost-btn" id="home-btn" hidden>Today's puzzle</button>
+  </div>
+</dialog>
+
+<dialog class="sheet narrow" id="mode-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>New game</h2>
+
+  <div class="field">
+    <span class="field-label" id="length-label">Word length</span>
+    <div class="seg" id="seg-length" role="group" aria-labelledby="length-label">
+      <button type="button" data-value="any">Any</button>
+      <button type="button" data-value="5">5</button>
+      <button type="button" data-value="6">6</button>
+      <button type="button" data-value="7">7</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <span class="field-label" id="difficulty-label">Mode</span>
+    <div class="seg" id="seg-difficulty" role="group" aria-labelledby="difficulty-label">
+      <button type="button" data-value="normal">Normal</button>
+      <button type="button" data-value="hard">Hard</button>
+      <button type="button" data-value="zen">Zen</button>
+    </div>
+  </div>
+
+  <p class="mode-note" id="mode-note"></p>
+
+  <div class="end-actions">
+    <button class="primary-btn" id="start-btn">Start</button>
+    <button class="ghost-btn" data-close>Cancel</button>
+  </div>
+</dialog>
+
+<dialog class="sheet narrow" id="solve-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>Call the word</h2>
+  <p class="warn">Wrong costs <span data-solve-penalty>2</span> body parts.</p>
+  <form method="dialog" id="solve-form">
+    <input id="solve-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Your answer">
+    <div class="end-actions">
+      <button class="primary-btn" value="submit">Call it</button>
+      <button class="ghost-btn" value="cancel" formnovalidate>Never mind</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

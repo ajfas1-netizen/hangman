@@ -1,0 +1,14 @@
+{
+  "name": "hangdle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hangman crossed with Wordle — guess the letter and the slot it sits in.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "words": "node scripts/check-words.js",
+    "words:fix": "node scripts/check-words.js --fix",
+    "start": "node scripts/serve.js",
+    "bundle": "node scripts/bundle.js && node scripts/bundle.js --fragment"
+  }
+}

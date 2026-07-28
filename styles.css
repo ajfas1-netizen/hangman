@@ -1,0 +1,866 @@
+/* Hangdle.
+ *
+ * Cool ink base, warm lamplight falling on it. The old palette was flat brown
+ * on brown, which read as clip-art; the contrast between a cold shadow and a
+ * warm light source is what makes the scene feel lit rather than drawn.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces — cool, near-neutral so the amber accents stay warm against them */
+  --ink-900: #0b0d10;
+  --ink-850: #0f1217;
+  --ink-800: #13171d;
+  --ink-750: #181d25;
+  --ink-700: #1e242d;
+  --line: #262e39;
+  --line-soft: #1b212a;
+
+  --text: #e9edf3;
+  --text-dim: #a9b3c1;
+  --muted: #8a94a3;
+
+  /* the scene */
+  --wood-hi: #9b7e5d;
+  --wood: #6d573e;
+  --wood-lo: #463726;
+  --rope-hi: #f3c67c;
+  --rope: #d9a04a;
+  --rope-lo: #a2691f;
+  --figure-hi: #f4f7fb;
+  --figure-lo: #a8b3c2;
+  --lamp: #ffb347;
+
+  /* outcomes */
+  --hit: #2fd6a0;
+  --hit-deep: #0c3a2c;
+  --hit-ink: #04150f;
+  --near: #f5b73c;
+  --near-deep: #3a2a09;
+  --danger: #f4645c;
+  --danger-deep: #3d1512;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 6px 20px -6px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 24px 60px -16px rgba(0, 0, 0, 0.75);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+
+  --ease: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --slot: clamp(2.9rem, 12vw, 3.9rem);
+
+  /* Derived colours, kept as tokens so the light theme can restate them.
+     Anything hardcoded here would survive the theme switch and look wrong. */
+  --line-strong: #3a4553;
+  --key-hover: #252d38;
+  --dead-text: #7c8695;
+  --out-text: #9aa4b2;
+  --ground: #000000;
+  --well: inset 0 1px 1px rgba(0, 0, 0, 0.4);
+  --well-deep: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+
+  --hit-solid-a: #35e0a9;
+  --hit-solid-b: #1fa87b;
+  --hit-ring: rgba(47, 214, 160, 0.55);
+  --hit-glow: rgba(47, 214, 160, 0.75);
+  --hit-shadow: rgba(47, 214, 160, 0.9);
+  --slot-a: #1a5c48;
+  --slot-b: #0c3a2c;
+  --slot-text: #eafff7;
+  --slot-glow: rgba(47, 214, 160, 0.55);
+  --bar-best-a: #0c3a2c;
+  --bar-best-b: #1fa87b;
+  --bar-best-text: #eafff7;
+
+  --near-ring: rgba(245, 183, 60, 0.55);
+  --rope-ring: rgba(217, 160, 74, 0.16);
+  --rope-glow: rgba(217, 160, 74, 0.35);
+  --rope-glow-strong: rgba(217, 160, 74, 0.5);
+  --body-glow: rgba(244, 247, 251, 0.25);
+  --danger-glow: rgba(244, 100, 92, 0.45);
+  --danger-ring: rgba(244, 100, 92, 0.55);
+  --strike: rgba(244, 100, 92, 0.6);
+
+  --wordmark-a: #ffffff;
+  --wordmark-b: #f3c67c;
+  --wash-warm: rgba(255, 179, 71, 0.09);
+  --wash-cool: rgba(90, 130, 190, 0.05);
+  --backdrop: rgba(6, 8, 11, 0.68);
+  --grain-blend: overlay;
+  --grain-opacity: 0.035;
+  --ground-opacity: 0.4;
+  --lamp-strength: 1;
+}
+
+/*
+ * Daylight, not an inverted night.
+ *
+ * The dark theme is a lamplit scene: cold shadow, warm light, a pale figure
+ * glowing against it. Flipping those values would give a washed-out grey page
+ * with a white stick figure on it. So the light theme is built from a different
+ * idea — ink on warm paper, the gallows drawn rather than lit, the figure the
+ * darkest thing on the page instead of the brightest.
+ *
+ * Consequences worth noting: the accent colours darken sharply, because a mint
+ * green that reads beautifully on near-black is illegible on paper; the deep
+ * tints and the accents swap roles, so a hit chip becomes dark green on pale
+ * green; the grain multiplies instead of overlaying, since overlay lightens on
+ * a light ground; and the lamp glow all but disappears.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ink-900: #efeae0;
+  --ink-850: #f5f1e9;
+  --ink-800: #fffdf9;
+  --ink-750: #f7f3ec;
+  --ink-700: #eae4d8;
+  --line: #d8d0c1;
+  --line-soft: #e6dfd2;
+
+  --text: #22201c;
+  --text-dim: #4b473f;
+  --muted: #6b6558;
+
+  --wood-hi: #a98358;
+  --wood: #82633f;
+  --wood-lo: #55401f;
+  --rope-hi: #d99a2f;
+  --rope: #b1741a;
+  --rope-lo: #855410;
+  --figure-hi: #3a382f;
+  --figure-lo: #16150f;
+  --lamp: #ffb347;
+
+  --hit: #0a7551;
+  --hit-deep: #d5f1e4;
+  --hit-ink: #04150f;
+  --near: #855107;
+  --near-deep: #faeccb;
+  --danger: #ab2a20;
+  --danger-deep: #fadcd8;
+
+  --line-strong: #b6ad9c;
+  --key-hover: #e1dacb;
+  --dead-text: #6d665a;
+  --out-text: #5f5a50;
+  --ground: #4a3f2c;
+  --well: inset 0 1px 1px rgba(60, 50, 32, 0.09);
+  --well-deep: inset 0 2px 6px rgba(60, 50, 32, 0.14);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  --shadow-1: 0 1px 2px rgba(60, 50, 32, 0.1);
+  --shadow-2: 0 6px 18px -6px rgba(60, 50, 32, 0.18);
+  --shadow-3: 0 24px 60px -16px rgba(60, 50, 32, 0.3);
+
+  --hit-solid-a: #2ec894;
+  --hit-solid-b: #109a6d;
+  --hit-ring: rgba(16, 154, 109, 0.5);
+  --hit-glow: rgba(16, 154, 109, 0.35);
+  --hit-shadow: rgba(16, 154, 109, 0.45);
+  --slot-a: #d9f3e6;
+  --slot-b: #c2ead6;
+  --slot-text: #06553a;
+  --slot-glow: rgba(16, 154, 109, 0.3);
+  --bar-best-a: #d5f1e4;
+  --bar-best-b: #8bd9bb;
+  --bar-best-text: #06553a;
+
+  --near-ring: rgba(160, 106, 12, 0.45);
+  --rope-ring: rgba(177, 116, 26, 0.14);
+  --rope-glow: rgba(177, 116, 26, 0.3);
+  --rope-glow-strong: rgba(177, 116, 26, 0.4);
+  --body-glow: rgba(70, 62, 48, 0.22);
+  --danger-glow: rgba(171, 42, 32, 0.3);
+  --danger-ring: rgba(171, 42, 32, 0.45);
+  --strike: rgba(171, 42, 32, 0.55);
+
+  --wordmark-a: #2c2823;
+  --wordmark-b: #9a6410;
+  --wash-warm: rgba(255, 183, 77, 0.22);
+  /* Barely there. At dark-mode strength the cool wash reads as a grey smudge
+     on paper rather than as shade. */
+  --wash-cool: rgba(140, 165, 205, 0.05);
+  --backdrop: rgba(58, 50, 38, 0.34);
+  --grain-blend: multiply;
+  --grain-opacity: 0.022;
+  --ground-opacity: 0.14;
+  --lamp-strength: 0.35;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  background:
+    radial-gradient(120% 70% at 72% -8%, var(--wash-warm) 0%, transparent 58%),
+    radial-gradient(90% 60% at 12% 8%, var(--wash-cool) 0%, transparent 60%),
+    linear-gradient(180deg, var(--ink-850) 0%, var(--ink-900) 62%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-feature-settings: "cv01", "ss01";
+  line-height: 1.5;
+}
+
+/* A whisper of film grain. Flat dark UIs band badly on big gradients; noise
+   hides the banding and takes the plastic sheen off. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body > *:not(.grain) { position: relative; z-index: 1; }
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent);
+}
+
+.wordmark {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 620;
+  letter-spacing: -0.021em;
+  background: linear-gradient(168deg, var(--wordmark-a) 8%, var(--wordmark-b) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.icon-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--ink-750), var(--ink-800));
+  box-shadow: var(--edge), var(--shadow-1);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s, transform 0.18s var(--spring);
+}
+.icon-btn:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
+.icon-btn:active { transform: translateY(0); }
+
+.topbar-right { display: flex; gap: 0.5rem; justify-self: end; }
+
+/* Show the theme you would switch *to*, not the one you're in. */
+:root[data-theme="light"] .icon-sun,
+:root:not([data-theme="light"]) .icon-moon { display: none; }
+
+/* ---------------------------------------------------------------- layout */
+
+.layout {
+  flex: 1;
+  width: min(100%, 62rem);
+  margin: 0 auto;
+  padding: 1.1rem 1rem 1.6rem;
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+
+/* Grid items default to a min-width of auto, which lets their content force a
+   column wider than the page. Both of these must be allowed to shrink. */
+.stage, .play { min-width: 0; }
+
+@media (min-width: 47rem) {
+  .layout {
+    grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);
+    gap: 2.4rem;
+    align-items: start;
+    align-content: center;
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* Everything eases in once, so the first paint doesn't snap. */
+.stage, .play { animation: rise 0.5s var(--ease) both; }
+.play { animation-delay: 0.06s; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------------------------------------------------------------- gallows */
+
+.stage { display: grid; justify-items: center; gap: 1rem; }
+
+.gallows-wrap {
+  position: relative;
+  width: min(100%, 15.5rem);
+  display: grid;
+  place-items: center;
+}
+
+.gallows { width: 100%; max-height: 44vh; overflow: visible; }
+
+/* Lamplight belongs to the night. In daylight it drops back to a faint warm
+   wash rather than a glow the scene isn't lit by. */
+.gallows .lamp { opacity: var(--lamp-strength); }
+
+.gallows .frame path {
+  stroke: url(#g-wood);
+  stroke-width: 7.5;
+  stroke-linecap: round;
+  fill: none;
+}
+.gallows .beam-shadow { display: none; }
+
+.gallows .ground {
+  fill: var(--ground);
+  opacity: var(--ground-opacity);
+  filter: blur(3px);
+}
+
+.gallows .rope-line {
+  stroke: url(#g-rope);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0.85;
+}
+
+.gallows .coil {
+  stroke: url(#g-rope);
+  stroke-width: 4.2;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleX(0.15);
+  transition: opacity 0.34s var(--ease), transform 0.44s var(--spring);
+}
+.gallows .coil.on { opacity: 1; transform: scaleX(1); }
+.gallows .coil.unused { display: none; }
+
+/* Each part draws itself on rather than popping into place — the gesture is
+   the point, and it costs nothing but a dash offset. */
+.gallows .part {
+  stroke: url(#g-figure);
+  stroke-width: 5.4;
+  stroke-linecap: round;
+  fill: none;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  transition: stroke-dashoffset 0.62s var(--ease), opacity 0.22s linear;
+}
+.gallows .part.on { stroke-dashoffset: 0; opacity: 1; }
+
+.gallows.rope-full .rope-line { opacity: 1; }
+.gallows.rope-full .coil.on,
+.gallows.rope-full .rope-line { stroke: var(--danger); filter: url(#f-glow); }
+.gallows.dead .part.on { stroke: var(--danger); }
+
+/* ---------------------------------------------------------------- tracks */
+
+.tracks { display: grid; gap: 0.5rem; width: min(100%, 15.5rem); }
+
+.track {
+  display: grid;
+  grid-template-columns: 2.9rem 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.track-label { letter-spacing: 0.09em; text-transform: uppercase; font-weight: 600; }
+.track-count { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-dim); }
+.track-count i { font-style: normal; opacity: 0.35; margin: 0 0.05em; }
+
+.pips { display: flex; gap: 0.26rem; }
+
+.pip {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--ink-700);
+  box-shadow: var(--well);
+  transition: background 0.3s var(--ease), box-shadow 0.3s;
+}
+#track-body .pip.on { background: linear-gradient(90deg, var(--figure-lo), var(--figure-hi)); box-shadow: 0 0 8px var(--body-glow); }
+#track-rope .pip.on { background: linear-gradient(90deg, var(--rope-lo), var(--rope-hi)); box-shadow: 0 0 8px var(--rope-glow); }
+.track.full .pip.on { background: linear-gradient(90deg, var(--danger-deep), var(--danger)); box-shadow: 0 0 10px var(--danger-glow); }
+.track.full .track-count { color: var(--danger); }
+
+/* ---------------------------------------------------------------- board */
+
+.play { display: grid; gap: 0.95rem; align-content: start; }
+
+.puzzle-meta {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+/* A grid, not a wrapping flex row: a seven-letter word must stay on one line
+   at every width, so the slots shrink to fit rather than spilling. The max-width
+   stops five-letter boards from stretching across a wide column. */
+.board {
+  display: grid;
+  grid-template-columns: repeat(var(--slots, 5), minmax(0, 1fr));
+  gap: 0.45rem;
+  max-width: calc(var(--slots, 5) * 3.9rem + (var(--slots, 5) - 1) * 0.45rem);
+}
+
+.slot {
+  width: auto;
+  aspect-ratio: 1 / 1.14;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, var(--ink-750), var(--ink-850));
+  box-shadow: var(--edge), var(--shadow-1);
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(1.15rem, 5.2vw, 1.75rem);
+  font-weight: 650;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.24s, background 0.3s, transform 0.24s var(--spring);
+}
+.slot:disabled { cursor: default; }
+
+.slot[data-selected="true"] {
+  border-color: var(--rope);
+  box-shadow: var(--edge), 0 0 0 3.5px var(--rope-ring), 0 0 18px -4px var(--rope-glow-strong);
+  transform: translateY(-2px);
+}
+
+.slot.filled {
+  background: linear-gradient(180deg, var(--slot-a), var(--slot-b));
+  border-color: var(--hit-ring);
+  color: var(--slot-text);
+  box-shadow: var(--edge), 0 0 20px -6px var(--slot-glow);
+}
+
+.slot .pending { color: var(--muted); }
+
+.slot.pop { animation: pop 0.42s var(--spring); }
+.slot.shake { animation: shake 0.4s var(--ease); }
+.gallows.shake { animation: shake 0.45s var(--ease); }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-7px); }
+  42% { transform: translateX(6px); }
+  68% { transform: translateX(-3px); }
+  86% { transform: translateX(2px); }
+}
+
+/* ---------------------------------------------------------------- deduction */
+
+.deduction {
+  min-height: 1.7rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  flex-wrap: wrap;
+}
+
+.deduction .out {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  padding: 0.12rem 0.3rem;
+  border-radius: 6px;
+  background: var(--ink-750);
+  border: 1px solid var(--line);
+  color: var(--out-text);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--danger);
+  text-transform: uppercase;
+  font-weight: 650;
+}
+
+/* ---------------------------------------------------------------- message */
+
+.message {
+  margin: 0;
+  min-height: 2.7rem;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
+.message .k {
+  display: inline-block;
+  padding: 0 0.34em;
+  border-radius: 5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.message.hit .k { background: var(--hit-deep); color: var(--hit); }
+.message.near .k { background: var(--near-deep); color: var(--near); }
+.message.miss .k { background: var(--danger-deep); color: var(--danger); }
+.message.nudge { color: var(--muted); }
+
+/* ---------------------------------------------------------------- keyboard */
+
+.keyboard { display: grid; gap: 0.36rem; }
+.kb-row { display: flex; gap: 0.3rem; justify-content: center; }
+
+.key {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 3.3rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 11px;
+  background: linear-gradient(180deg, var(--ink-700), var(--ink-750));
+  box-shadow: var(--edge), var(--shadow-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.22s, color 0.22s, transform 0.12s var(--ease), box-shadow 0.22s, opacity 0.22s;
+}
+.key.wide { flex: 1.7; font-size: 0.68rem; letter-spacing: 0.07em; }
+.key:hover:not(:disabled) { background: linear-gradient(180deg, var(--key-hover), var(--ink-700)); }
+.key:active:not(:disabled) { transform: translateY(1.5px); box-shadow: none; }
+.key:disabled { cursor: default; }
+
+/* Three states, three different treatments — not three hues. Green-vs-amber
+   alone fails for a good share of players. */
+.key[data-state="dead"] {
+  background: var(--ink-850);
+  color: var(--dead-text);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--strike);
+  box-shadow: none;
+}
+.key[data-state="live"] {
+  background: var(--near-deep);
+  color: var(--near);
+  box-shadow: var(--edge), inset 0 0 0 1.5px var(--near-ring);
+}
+.key[data-state="live"]::after {
+  content: "";
+  position: absolute;
+  top: 0.34rem;
+  right: 0.34rem;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 50%;
+  background: var(--near);
+}
+.key[data-state="placed"] {
+  background: linear-gradient(180deg, var(--hit-solid-a), var(--hit-solid-b));
+  color: var(--hit-ink);
+  border-color: transparent;
+  box-shadow: 0 0 16px -5px var(--hit-glow);
+}
+.key[data-pending="true"] {
+  outline: 2.5px solid var(--rope);
+  outline-offset: -2.5px;
+  transform: translateY(-1.5px);
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.ghost-btn, .primary-btn {
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s var(--spring), box-shadow 0.18s;
+}
+
+.ghost-btn {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent);
+  color: var(--text-dim);
+}
+.ghost-btn:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
+.ghost-btn:active { transform: translateY(0); }
+.ghost-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.ghost-btn.danger:hover { color: var(--danger); border-color: var(--danger-ring); }
+
+.primary-btn {
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, var(--hit-solid-a), var(--hit-solid-b));
+  color: var(--hit-ink);
+  box-shadow: 0 8px 22px -10px var(--hit-shadow);
+}
+.primary-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -10px var(--hit-shadow); }
+.primary-btn:active { transform: translateY(0); }
+
+/* ---------------------------------------------------------------- dialogs */
+
+.sheet {
+  position: relative;
+  width: min(35rem, calc(100vw - 1.75rem));
+  padding: 1.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, var(--ink-800), var(--ink-850));
+  box-shadow: var(--edge), var(--shadow-3);
+  color: var(--text);
+  animation: sheet-in 0.34s var(--spring) both;
+}
+.sheet.narrow { width: min(24rem, calc(100vw - 1.75rem)); }
+.sheet::backdrop {
+  background: var(--backdrop);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.sheet h2 { margin: 0 0 0.35rem; font-size: 1.3rem; font-weight: 650; letter-spacing: -0.015em; }
+.sheet h3 {
+  margin: 1.5rem 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sheet p { margin: 0.65rem 0; font-size: 0.92rem; color: var(--text-dim); }
+.sheet strong { color: var(--text); }
+.sheet code {
+  background: var(--ink-750);
+  border: 1px solid var(--line-soft);
+  padding: 0.06em 0.36em;
+  border-radius: 5px;
+  font-size: 0.86em;
+}
+.lede { color: var(--muted); }
+.footnote { margin-top: 1.5rem; font-size: 0.8rem; color: var(--muted); }
+.warn { color: var(--near); font-size: 0.84rem; }
+
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.16s, background 0.16s, border-color 0.16s;
+}
+.close-btn:hover { color: var(--text); background: var(--ink-750); border-color: var(--line); }
+
+.rules { margin: 1.1rem 0; padding: 0; list-style: none; display: grid; gap: 0.75rem; font-size: 0.9rem; color: var(--text-dim); }
+.rules li { display: grid; grid-template-columns: 3.5rem 1fr; gap: 0.75rem; align-items: baseline; }
+
+.chip {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.2rem 0;
+  border-radius: 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.chip-hit { background: linear-gradient(180deg, var(--hit-solid-a), var(--hit-solid-b)); color: var(--hit-ink); }
+.chip-near { background: var(--near-deep); color: var(--near); box-shadow: inset 0 0 0 1.5px var(--near-ring); }
+.chip-miss { background: var(--ink-850); color: var(--dead-text); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+/* ---------------------------------------------------------------- modes */
+
+.field { display: grid; gap: 0.4rem; margin: 1.1rem 0; }
+
+.field-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.seg {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--ink-850);
+  box-shadow: var(--well);
+}
+
+.seg button {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.4rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--ink-700), var(--ink-750));
+  box-shadow: var(--edge), var(--shadow-1);
+  color: var(--text);
+}
+
+.mode-note {
+  min-height: 2.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Zen has no limits to fill, so the meters drop to bare tallies. */
+.tracks.limitless .pips,
+.tracks.limitless .track-count i,
+.tracks.limitless #max-body,
+.tracks.limitless #max-rope { display: none; }
+.tracks.limitless .track { grid-template-columns: 2.9rem auto 1fr; }
+.tracks.limitless .track-count { justify-self: start; }
+
+/* ---------------------------------------------------------------- stats */
+
+.stat-row { display: flex; gap: 1.4rem; margin: 1rem 0 0.4rem; flex-wrap: wrap; }
+.stat { display: grid; gap: 0.1rem; }
+.stat b {
+  font-size: 1.75rem;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.stat span { font-size: 0.64rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+
+.dist { display: grid; gap: 0.28rem; font-size: 0.78rem; }
+.dist-row { display: grid; grid-template-columns: 1.1rem 1fr; gap: 0.55rem; align-items: center; color: var(--muted); }
+.dist-bar {
+  min-width: 1.7rem;
+  padding: 0.16rem 0.5rem;
+  border-radius: 5px;
+  background: var(--ink-700);
+  color: var(--text-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.dist-row.best .dist-bar { background: linear-gradient(90deg, var(--bar-best-a), var(--bar-best-b)); color: var(--bar-best-text); }
+
+.end-word {
+  margin: 0.4rem 0;
+  font-size: 1.6rem;
+  font-weight: 680;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: linear-gradient(168deg, var(--wordmark-a), var(--wordmark-b));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.end-note { color: var(--muted); font-size: 0.88rem; }
+.grid { margin: 1rem 0; font-size: 1.2rem; line-height: 1.26; font-family: inherit; }
+.end-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1.1rem; }
+
+#solve-input {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ink-850);
+  box-shadow: var(--well-deep);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 620;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+#solve-input:focus { outline: 2px solid var(--rope); outline-offset: 1px; }
+
+:focus-visible { outline: 2px solid var(--rope); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- phone */
+
+/* Full width for the gallows would push the keyboard below the fold, so it
+   sits beside its meters instead. */
+@media (max-width: 46.99rem) {
+  /* minmax(0, …), not 1fr: a bare 1fr refuses to shrink below the meters'
+     min-content width, which overflows the page on a 320px screen. */
+  .stage {
+    grid-template-columns: 7.6rem minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: 1.15rem;
+  }
+  .gallows-wrap { width: 7.6rem; }
+  .gallows { max-height: 11.5rem; }
+  .tracks { width: 100%; min-width: 0; }
+  .track { grid-template-columns: 2.5rem minmax(0, 1fr) auto; font-size: 0.68rem; min-width: 0; }
+  .pips { min-width: 0; }
+  .key { height: 3.15rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .gallows .part { stroke-dashoffset: 0; }
+}
