@@ -92,6 +92,32 @@ Letter states on the keyboard differ by treatment, not only hue — solid fill f
 placed, outline plus a dot for in-the-word, struck through for dead. Green
 against amber alone fails for a good share of players.
 
+### Light theme
+
+Daylight, not an inverted night. The dark theme is a lamplit scene — cold
+shadow, warm light, a pale figure glowing against it. Flipping those values
+gives a washed-out grey page with a white stick figure on it, so the light
+theme is built from a different idea: ink on warm paper, the gallows drawn
+rather than lit, the figure the *darkest* thing on the page instead of the
+brightest. The accents darken sharply (a mint green that sings on near-black is
+illegible on paper), the deep tints and accents swap roles, the grain blends
+with `multiply` instead of `overlay` because overlay lightens on a light ground,
+and the lamp glow all but disappears.
+
+Every themeable colour is a custom property on `:root`, restated under
+`:root[data-theme="light"]`. Anything hardcoded in a rule survives the switch
+and looks wrong in one theme — that's why the gradients, rings, glows and
+strike-through colours are all tokens.
+
+An inline script in `<head>` sets `data-theme` before first paint, so the page
+never flashes the wrong theme. An explicit choice is stored and wins; otherwise
+it follows the system and keeps following it as the system changes.
+
+Both themes are checked against a 4.5:1 contrast floor. Worth knowing if you
+audit it yourself: a naive check reads `backgroundColor`, which is `transparent`
+on anything using a gradient — that reports the placed keys against the page
+behind them and is wildly wrong in both directions.
+
 ## Layout
 
 ```

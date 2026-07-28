@@ -509,6 +509,45 @@ el('share-btn').addEventListener('click', async () => {
   setTimeout(() => { btn.textContent = original; }, 1400);
 });
 
+/* ---------------------------------------------------------------- theme */
+
+const THEME_KEY = 'cinch:theme';
+const THEME_COLOR = { light: '#f5f1e9', dark: '#0d0f13' };
+const prefersLight = matchMedia('(prefers-color-scheme: light)');
+
+function storedTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    return t === 'light' || t === 'dark' ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = THEME_COLOR[theme];
+  el('theme-btn').setAttribute(
+    'aria-label',
+    theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme',
+  );
+}
+
+el('theme-btn').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* fine */ }
+  applyTheme(next);
+});
+
+// Follow the system, but only while the player hasn't chosen for themselves.
+prefersLight.addEventListener('change', () => {
+  if (!storedTheme()) applyTheme(prefersLight.matches ? 'light' : 'dark');
+});
+
+// The inline head script already set the attribute; this syncs the label.
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+
 // Keep the written rules in step with the constants, so tuning a track length
 // can never leave the help text quietly lying about it.
 for (const [selector, value] of [
