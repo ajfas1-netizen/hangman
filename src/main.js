@@ -16,6 +16,7 @@ import {
   playerName, setPlayerName, loadBoard, addToBoard, clearBoard,
 } from './storage.js';
 import { scoreOf, encodeResult, decodeResult, rank, tally, NAME_PATTERN } from './score.js';
+import { isConfigured, submitScore, fetchScores } from './remote.js';
 import { shareGrid, shareText, copyToClipboard } from './share.js';
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -606,7 +607,41 @@ function ownCode() {
 function recordOwnEntry() {
   const name = playerName();
   if (!name || view.mode !== 'daily' || view.game.status === PLAYING) return;
-  addToBoard({ number: view.meta.number, name, ...scoreOf(view.game) });
+
+  const entry = { number: view.meta.number, name, ...scoreOf(view.game) };
+  addToBoard(entry);
+  // Fire-and-forget: a failed post must never interrupt the end of a game.
+  if (isConfigured()) submitScore(entry).then(refreshRemote, () => {});
+}
+
+/** Rows last fetched from the shared table, or null if we have no answer. */
+let remoteRows = null;
+
+/** Local board plus anything the group has posted; the shared table wins. */
+function currentBoard() {
+  const board = loadBoard();
+  if (!remoteRows) return board;
+
+  const merged = JSON.parse(JSON.stringify(board));
+  for (const entry of remoteRows) {
+    const day = merged[entry.number] ?? (merged[entry.number] = {});
+    day[entry.name.toLowerCase()] = entry;
+  }
+  return merged;
+}
+
+async function refreshRemote() {
+  if (!isConfigured()) return;
+  syncNote('Syncing…');
+  const rows = await fetchScores();
+  remoteRows = rows;
+  syncNote(rows ? `Synced — ${rows.length} result${rows.length === 1 ? '' : 's'} from the group.`
+                : "Couldn't reach the leaderboard. Showing what's on this device.");
+  renderBoard();
+}
+
+function syncNote(text) {
+  el('board-sync').textContent = text;
 }
 
 function boardRow(cells, className = '') {
@@ -619,7 +654,7 @@ function boardRow(cells, className = '') {
 }
 
 function renderBoard() {
-  const board = loadBoard();
+  const board = currentBoard();
   const me = playerName().toLowerCase();
   const today = view.meta && view.mode === 'daily' ? view.meta.number : Math.max(0, ...Object.keys(board).map(Number));
 
@@ -667,8 +702,11 @@ function renderBoard() {
 function openBoard() {
   el('name-input').value = playerName();
   note('');
+  el('board-paste').hidden = isConfigured();
+  syncNote(isConfigured() ? 'Syncing…' : 'Not connected — showing results pasted on this device.');
   renderBoard();
   el('board-dialog').showModal();
+  refreshRemote();
 }
 
 function note(text, tone = '') {
@@ -688,7 +726,8 @@ el('name-save').addEventListener('click', () => {
   setPlayerName(name);
   recordOwnEntry();          // backfill today's result now that you have a name
   renderBoard();
-  note(`Saved. Your share text now carries your code.`, 'good');
+  note(isConfigured() ? 'Saved. Your results post to the group.'
+                      : 'Saved. Your share text now carries your code.', 'good');
 });
 
 el('paste-add').addEventListener('click', () => {
@@ -706,8 +745,10 @@ el('paste-add').addEventListener('click', () => {
 el('board-clear').addEventListener('click', () => {
   clearBoard();
   renderBoard();
-  note('Cleared.', '');
+  note('Cleared what was stored on this device.', '');
 });
+
+el('board-refresh').addEventListener('click', refreshRemote);
 
 /* ---------------------------------------------------------------- modes */
 
