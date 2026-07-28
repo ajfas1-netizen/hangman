@@ -423,6 +423,87 @@ body > *:not(.grain) { position: relative; z-index: 1; }
 .track.full .pip.on { background: linear-gradient(90deg, var(--danger-deep), var(--danger)); box-shadow: 0 0 10px var(--danger-glow); }
 .track.full .track-count { color: var(--danger); }
 
+/* ---------------------------------------------------------------- home */
+
+/* Launched from a home screen icon, dropping straight onto a board reads as
+   an interrupted session rather than an opening. The menu shares the gallows
+   with the game, so entering a puzzle changes only the right-hand column. */
+body[data-screen="home"] .play,
+body[data-screen="home"] .tracks,
+body[data-screen="game"] .home { display: none; }
+
+/* With the meters gone the gallows has no column to share, so it stops being a
+   sidebar and becomes the menu's hero. */
+body[data-screen="home"] .stage {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+body[data-screen="home"] .gallows-wrap { width: min(100%, 12rem); }
+body[data-screen="home"] .gallows { max-height: 17rem; }
+
+.home {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  animation: rise 0.45s var(--ease) both;
+}
+
+.home-eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.home-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 6.5vw, 2.1rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.home-title em { font-style: italic; color: var(--rope); }
+
+.home-status {
+  margin: 0.15rem 0 0.55rem;
+  font-size: 0.92rem;
+  color: var(--text-dim);
+}
+
+.home-actions { display: grid; gap: 0.5rem; max-width: 22rem; }
+.wide-btn { padding: 0.85rem 1.1rem; font-size: 0.95rem; }
+
+.home-stats {
+  display: flex;
+  gap: 1.6rem;
+  margin: 1.4rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+.home-stats div { display: grid; gap: 0.1rem; }
+.home-stats dt {
+  order: 2;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.home-stats dd {
+  order: 1;
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.topbar-left { display: flex; gap: 0.5rem; }
+
 /* ---------------------------------------------------------------- board */
 
 .play { display: grid; gap: 0.95rem; align-content: start; }
