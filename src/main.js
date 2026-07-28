@@ -11,7 +11,7 @@ import {
   MAX_MISSES, MAX_NEARS, SOLVE_PENALTY, BODY_PARTS,
 } from './engine.js';
 import { wordForDate, randomWord } from './daily.js';
-import { loadDaily, saveDaily, loadStats, recordResult, resetStats } from './storage.js';
+import { loadDaily, saveDaily, loadStats, recordResult, resetStats, readRaw, writeRaw } from './storage.js';
 import { shareGrid, shareText, copyToClipboard } from './share.js';
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -516,12 +516,8 @@ const THEME_COLOR = { light: '#f5f1e9', dark: '#0d0f13' };
 const prefersLight = matchMedia('(prefers-color-scheme: light)');
 
 function storedTheme() {
-  try {
-    const t = localStorage.getItem(THEME_KEY);
-    return t === 'light' || t === 'dark' ? t : null;
-  } catch {
-    return null;
-  }
+  const t = readRaw(THEME_KEY);
+  return t === 'light' || t === 'dark' ? t : null;
 }
 
 function applyTheme(theme) {
@@ -536,7 +532,7 @@ function applyTheme(theme) {
 
 el('theme-btn').addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  try { localStorage.setItem(THEME_KEY, next); } catch { /* fine */ }
+  writeRaw(THEME_KEY, next);
   applyTheme(next);
 });
 
@@ -559,8 +555,8 @@ for (const [selector, value] of [
 }
 
 // First visit gets the rules unprompted — the two-track scoring needs explaining.
-if (!localStorage.getItem('cinch:seen')) {
-  try { localStorage.setItem('cinch:seen', '1'); } catch { /* fine */ }
+if (!readRaw('cinch:seen')) {
+  writeRaw('cinch:seen', '1');
   el('help-dialog').showModal();
 }
 

@@ -21,9 +21,32 @@ const EMPTY_STATS = {
   bodyUsed: [0, 0, 0, 0, 0, 0, 0],
 };
 
+/**
+ * Raw guarded access. In a sandboxed iframe or with third-party storage
+ * blocked, *reading the localStorage property itself* throws — not just the
+ * call on it. So every access in the app goes through these two functions;
+ * a bare `localStorage.getItem(...)` anywhere else is a page-killing bug.
+ */
+export function readRaw(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeRaw(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;   /* storage unavailable — play on without it */
+  }
+}
+
 function read(key) {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = readRaw(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -31,11 +54,7 @@ function read(key) {
 }
 
 function write(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable — play on without it */
-  }
+  writeRaw(key, JSON.stringify(value));
 }
 
 export function serializeGame(state) {
