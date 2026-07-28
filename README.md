@@ -84,6 +84,24 @@ A finished game always offers the way forward: **See result** reopens the summar
 
 Results share as an emoji grid that wraps at the word length, so it comes out the same shape as the puzzle. A square's position says nothing about which slot was guessed, so it spoils nothing.
 
+## Leaderboard
+
+There is no server behind this — it's static files on a static host — so there is nowhere for players' scores to meet. Rather than bolt on a backend and an account system, results travel the way results already travel: inside the share text.
+
+Set a name, and your share text gains a code line:
+
+```
+HDL209.W.1.2.11.AJ.7
+```
+
+Send it to the group; anyone pastes the whole message into their leaderboard and it lands. Each player's board is their own copy, assembled from what they've been sent, ranked per-puzzle and all-time.
+
+Ranking is survivors first, then least damage (body + rope — the tracks cost differently to fill, but a notch of either is one mistake), then fewest guesses.
+
+The checksum catches a mangled paste — a truncated message, a stray character from a chat client. **It is not anti-cheat.** Anyone who reads `src/score.js` can mint a code claiming a perfect game. For a group of friends that's the right trade: no accounts, no backend, nothing to sign up for, and the link still works for anyone you send it to.
+
+If you outgrow that, the upgrade is a real backend — a free Cloudflare Worker or Supabase project would do it, posting results to shared storage and dropping the paste step entirely. That needs an account and a URL; the frontend is already structured for it (`src/score.js` owns the encoding, `src/storage.js` owns persistence).
+
 ## Look
 
 Cool ink base, warm lamplight falling across it. The contrast between a cold
