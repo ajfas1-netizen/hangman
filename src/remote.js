@@ -12,7 +12,7 @@
  * It removes the paste step, which is the point; it doesn't make the numbers
  * trustworthy against someone determined to fake them.
  */
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY } from './config.js';
 
 // Prefixed so it cannot collide with a `scores` table already in the project.
 const TABLE = 'hangdle_scores';
@@ -36,21 +36,55 @@ function describe(status) {
   return `HTTP ${status}`;
 }
 
+/**
+ * Supabase is mid-migration between two key formats, and which one a project
+ * accepts isn't something this code can know ahead of time. Both are published
+ * safely, so try them in turn and remember the one that worked rather than
+ * making a human diagnose a 401.
+ */
+const KEYS = [SUPABASE_PUBLISHABLE_KEY, SUPABASE_ANON_KEY].filter(Boolean);
+let keyIndex = 0;
+
 export function isConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+  return Boolean(SUPABASE_URL && KEYS.length);
+}
+
+/** The key currently believed to work — exposed for diagnostics only. */
+export function activeKeyKind() {
+  const key = KEYS[keyIndex] ?? '';
+  return key.startsWith('sb_publishable_') ? 'publishable' : 'anon';
 }
 
 function endpoint(path) {
   return `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/${path}`;
 }
 
-function headers(extra = {}) {
+function headers(key, extra = {}) {
   return {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: key,
+    Authorization: `Bearer ${key}`,
     'Content-Type': 'application/json',
     ...extra,
   };
+}
+
+/** Issue a request, retrying with the other key if this one is rejected. */
+async function request(path, { method, body, prefer } = {}) {
+  let response;
+  for (let attempt = 0; attempt < KEYS.length; attempt++) {
+    const index = (keyIndex + attempt) % KEYS.length;
+    response = await fetch(endpoint(path), {
+      method,
+      body,
+      headers: headers(KEYS[index], prefer ? { Prefer: prefer } : {}),
+    });
+
+    if (response.status !== 401 && response.status !== 403) {
+      keyIndex = index;      // stick with whatever the project accepted
+      return response;
+    }
+  }
+  return response;           // every key rejected
 }
 
 /**
@@ -64,9 +98,9 @@ export async function submitScore(entry) {
   if (!isConfigured()) return 'offline';
 
   try {
-    const response = await fetch(endpoint(TABLE), {
+    const response = await request(TABLE, {
       method: 'POST',
-      headers: headers({ Prefer: 'return=minimal' }),
+      prefer: 'return=minimal',
       body: JSON.stringify({
         puzzle: entry.number,
         name: entry.name,
@@ -98,7 +132,7 @@ export async function fetchScores({ limit = 500 } = {}) {
 
   try {
     const query = `${TABLE}?select=${COLUMNS}&order=puzzle.desc&limit=${limit}`;
-    const response = await fetch(endpoint(query), { headers: headers() });
+    const response = await request(query);
     if (!response.ok) { failure = describe(response.status); return null; }
 
     const rows = await response.json();

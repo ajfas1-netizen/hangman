@@ -14,5 +14,12 @@
  * Never put the service_role key here. That one bypasses every policy.
  */
 export const SUPABASE_URL = 'https://gkeemnramnkmrglnayjy.supabase.co';
+
+/**
+ * The current-style publishable key. Tried first; if the project rejects it the
+ * client falls back to the legacy anon key below, and remembers which worked.
+ * Both are safe to publish — the RLS policies are what constrain them.
+ */
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2J9GaPurlifR6dpWNLnJng_cbr8TWz_';
 export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrZWVtbnJhbW5rbXJnbG5heWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzOTg1MTQsImV4cCI6MjA5OTk3NDUxNH0.bhwCq7d-DB8X2euXR6OMLROX8WpQQ8gIcIoP5azsgGE';

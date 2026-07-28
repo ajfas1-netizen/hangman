@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../src/config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY } from '../src/config.js';
 
 const entry = { number: 209, name: 'AJ', won: true, body: 1, rope: 2, guesses: 11 };
 
@@ -11,15 +11,21 @@ const entry = { number: 209, name: 'AJ', won: true, body: 1, rope: 2, guesses: 1
  * real config would make these tests pass or fail depending on whether a
  * project happens to be connected.
  */
-async function loadRemote({ url, key }, fetchImpl) {
+async function loadRemote({ url, key, publishable }, fetchImpl) {
   const realFetch = globalThis.fetch;
   if (fetchImpl) globalThis.fetch = fetchImpl;
 
-  const source = readFileSync(new URL('../src/remote.js', import.meta.url), 'utf8')
-    .replace(
-      "import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';",
-      `const SUPABASE_URL = ${JSON.stringify(url)};\nconst SUPABASE_ANON_KEY = ${JSON.stringify(key)};`,
-    );
+  const real = readFileSync(new URL('../src/remote.js', import.meta.url), 'utf8');
+  // Matched by shape, not by exact text: an added export silently broke a
+  // literal search once, leaving the import in place and every test failing on
+  // an unresolvable module rather than on anything real.
+  const importLine = /^import\s*\{[^}]*\}\s*from\s*'\.\/config\.js';$/m;
+  assert.match(real, importLine, 'remote.js no longer imports config the way this stub expects');
+
+  const source = real.replace(importLine,
+    `const SUPABASE_URL = ${JSON.stringify(url)};\n`
+    + `const SUPABASE_ANON_KEY = ${JSON.stringify(key)};\n`
+    + `const SUPABASE_PUBLISHABLE_KEY = ${JSON.stringify(publishable ?? '')};`);
 
   const module = await import(`data:text/javascript,${encodeURIComponent(source)}`);
   return { module, restore: () => { globalThis.fetch = realFetch; } };
@@ -158,4 +164,48 @@ test('any committed key is an anon key for the configured project', () => {
   const claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
   assert.equal(claims.role, 'anon', 'never commit a service_role key');
   assert.ok(SUPABASE_URL.includes(claims.ref), 'key belongs to a different project than the URL');
+});
+
+test('a rejected key falls back to the other one, then sticks with it', async () => {
+  const tried = [];
+  const { module, restore } = await loadRemote(
+    { url: FAKE.url, key: 'legacy-anon', publishable: 'sb_publishable_new' },
+    async (_url, options) => {
+      tried.push(options.headers.apikey);
+      // The project only accepts the legacy key.
+      if (options.headers.apikey !== 'legacy-anon') return { ok: false, status: 401 };
+      return { ok: true, status: 200, json: async () => [] };
+    },
+  );
+  try {
+    assert.equal(module.activeKeyKind(), 'publishable', 'the newer key is tried first');
+    assert.deepEqual(await module.fetchScores(), []);
+    assert.deepEqual(tried, ['sb_publishable_new', 'legacy-anon'], 'falls back after a 401');
+    assert.equal(module.activeKeyKind(), 'anon', 'remembers what worked');
+
+    tried.length = 0;
+    await module.fetchScores();
+    assert.deepEqual(tried, ['legacy-anon'], 'no wasted retry on later calls');
+  } finally {
+    restore();
+  }
+});
+
+test('when every key is rejected the error is honest', async () => {
+  const { module, restore } = await loadRemote(
+    { url: FAKE.url, key: 'a', publishable: 'sb_publishable_b' },
+    async () => ({ ok: false, status: 401 }),
+  );
+  try {
+    assert.equal(await module.fetchScores(), null);
+    assert.equal(module.lastError(), 'key rejected');
+  } finally {
+    restore();
+  }
+});
+
+test('a committed publishable key is not a secret key', () => {
+  if (!SUPABASE_PUBLISHABLE_KEY) return;
+  assert.ok(!SUPABASE_PUBLISHABLE_KEY.startsWith('sb_secret_'), 'never commit a secret key');
+  assert.ok(SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_'), 'expected a publishable key');
 });
