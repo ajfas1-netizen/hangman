@@ -23,8 +23,8 @@ function withHostileStorage(run) {
 
 test('storage helpers survive localStorage throwing on access', () => {
   withHostileStorage(() => {
-    assert.equal(readRaw('cinch:seen'), null);
-    assert.equal(writeRaw('cinch:seen', '1'), false);
+    assert.equal(readRaw('hangdle:seen'), null);
+    assert.equal(writeRaw('hangdle:seen', '1'), false);
   });
 });
 

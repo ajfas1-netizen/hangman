@@ -1,5 +1,5 @@
 /**
- * Cinch — UI controller.
+ * Hangdle — UI controller.
  *
  * Input is deliberately two-step: choose a slot, choose a letter, then commit
  * with Enter. Every guess costs something, so a stray keypress must never fire
@@ -32,13 +32,46 @@ const dom = {
   maxRope: el('max-rope'),
   trackBody: el('track-body'),
   trackRope: el('track-rope'),
+  tracks: document.querySelector('.tracks'),
   solveBtn: el('solve-btn'),
-  practiceBtn: el('practice-btn'),
+  resultBtn: el('result-btn'),
+  newBtn: el('new-btn'),
   dailyBtn: el('daily-btn'),
 };
 
+/**
+ * Practice modes. The daily is always Normal so everyone plays the same puzzle
+ * under the same rules; the modes only apply to practice games.
+ *
+ * Hard is the 6/4 setting the balance simulation measured: still winnable, but
+ * the rope causes most deaths rather than roughly half. Zen removes both
+ * limits — useful for learning the placement mechanic without dying to it.
+ */
+const MODES = {
+  normal: { label: 'Normal', limits: {}, note: 'Six body parts, five rope notches — the daily setting.' },
+  hard:   { label: 'Hard',   limits: { maxNears: 4 }, note: 'Six body parts, four rope notches. Near misses bite sooner, and the rope does most of the killing.' },
+  zen:    { label: 'Zen',    limits: { maxMisses: Infinity, maxNears: Infinity }, note: 'No limits. Nothing can kill you — play until the word is filled.' },
+};
+
+const PREFS_KEY = 'hangdle:practice';
+const DEFAULT_PREFS = { length: 'any', difficulty: 'normal' };
+
+function loadPrefs() {
+  try {
+    const saved = JSON.parse(readRaw(PREFS_KEY) ?? 'null');
+    if (!saved) return { ...DEFAULT_PREFS };
+    return {
+      length: ['any', '5', '6', '7'].includes(String(saved.length)) ? String(saved.length) : 'any',
+      difficulty: MODES[saved.difficulty] ? saved.difficulty : 'normal',
+    };
+  } catch {
+    return { ...DEFAULT_PREFS };
+  }
+}
+
 const view = {
   mode: 'daily',
+  prefs: loadPrefs(),
   meta: null,      // { number, length }
   game: null,
   selected: 0,
@@ -58,11 +91,14 @@ function startDaily() {
   if (view.game.status !== PLAYING) showEnd({ replay: true });
 }
 
-function startPractice() {
-  const picked = randomWord();
+function startPractice(prefs = view.prefs) {
+  view.prefs = prefs;
+  writeRaw(PREFS_KEY, JSON.stringify(prefs));
+
+  const picked = randomWord(prefs.length === 'any' ? undefined : Number(prefs.length));
   view.mode = 'practice';
-  view.meta = { number: null, length: picked.length };
-  view.game = createGame(picked.word);
+  view.meta = { number: null, length: picked.length, difficulty: prefs.difficulty };
+  view.game = createGame(picked.word, MODES[prefs.difficulty].limits);
   view.ended = false;
   begin();
 }
@@ -72,8 +108,6 @@ function begin() {
   view.selected = firstEmptySlot();
   buildBoard();
   buildKeyboard();
-  dom.practiceBtn.textContent = view.mode === 'practice' ? 'New word' : 'Practice word';
-  dom.dailyBtn.hidden = view.mode !== 'practice';
   render();
   say(
     view.game.status === PLAYING
@@ -223,9 +257,10 @@ function submitCall(word) {
 function render() {
   const g = view.game;
 
+  const mode = MODES[view.meta.difficulty] ?? MODES.normal;
   dom.meta.textContent = view.mode === 'daily'
     ? `Daily #${view.meta.number} · ${g.length} letters`
-    : `Practice · ${g.length} letters`;
+    : `Practice · ${mode.label} · ${g.length} letters`;
 
   // Slots
   [...dom.board.children].forEach((slot, i) => {
@@ -277,8 +312,20 @@ function render() {
     key.setAttribute('aria-label', `${ch}, ${KEY_LABEL[state]}`);
   }
 
-  dom.solveBtn.disabled = g.status !== PLAYING;
+  renderActions();
   renderTracks();
+}
+
+/**
+ * A finished game used to leave the player staring at a dead board with no
+ * obvious way out. The row now always offers the next move: the result you just
+ * got, another game, and the way back to today's puzzle.
+ */
+function renderActions() {
+  const playing = view.game.status === PLAYING;
+  dom.solveBtn.hidden = !playing;
+  dom.resultBtn.hidden = playing;
+  dom.dailyBtn.hidden = view.mode !== 'practice';
 }
 
 const KEY_LABEL = {
@@ -291,6 +338,23 @@ const KEY_LABEL = {
 function renderTracks() {
   const g = view.game;
   const { maxMisses, maxNears } = g.limits;
+
+  // Zen has nothing to fill, so the meters become plain tallies and the figure
+  // never goes up — a completed gallows that cannot kill you would be a lie.
+  if (!Number.isFinite(maxMisses) || !Number.isFinite(maxNears)) {
+    dom.tracks.classList.add('limitless');
+    dom.countBody.textContent = String(g.misses);
+    dom.countRope.textContent = String(g.nears);
+    pips(dom.pipsBody, 0, 0);
+    pips(dom.pipsRope, 0, 0);
+    dom.trackBody.classList.remove('full');
+    dom.trackRope.classList.remove('full');
+    for (const node of dom.gallows.querySelectorAll('.part, .coil')) node.classList.remove('on');
+    dom.gallows.classList.remove('rope-full', 'dead');
+    return;
+  }
+
+  dom.tracks.classList.remove('limitless');
   const body = Math.min(g.misses, maxMisses);
   const rope = Math.min(g.nears, maxNears);
 
@@ -399,7 +463,9 @@ function showEnd({ replay }) {
         ? `${maxMisses} body parts — ${wrongCalls} wrong ${plural(wrongCalls, 'call')} cost you ${wrongCalls * 2} of them.`
         : `${maxMisses} wrong letters. The body was finished.`;
 
-  el('again-btn').textContent = replay ? 'Play a practice word' : 'Practice word';
+  // Always leave a way forward from here, in both directions.
+  el('again-btn').textContent = view.mode === 'practice' ? 'Play again' : 'Practice word';
+  el('home-btn').hidden = view.mode !== 'practice';
   el('end-dialog').showModal();
 }
 
@@ -481,11 +547,18 @@ for (const btn of document.querySelectorAll('[data-close]')) {
 el('help-btn').addEventListener('click', () => el('help-dialog').showModal());
 el('stats-btn').addEventListener('click', showStats);
 dom.solveBtn.addEventListener('click', callTheWord);
-dom.practiceBtn.addEventListener('click', startPractice);
+dom.resultBtn.addEventListener('click', () => showEnd({ replay: true }));
+dom.newBtn.addEventListener('click', openModes);
 dom.dailyBtn.addEventListener('click', startDaily);
+
+// "Play again" repeats the same settings; changing them is the New game sheet.
 el('again-btn').addEventListener('click', () => {
   el('end-dialog').close();
   startPractice();
+});
+el('home-btn').addEventListener('click', () => {
+  el('end-dialog').close();
+  startDaily();
 });
 
 el('reset-stats').addEventListener('click', () => {
@@ -509,9 +582,43 @@ el('share-btn').addEventListener('click', async () => {
   setTimeout(() => { btn.textContent = original; }, 1400);
 });
 
+/* ---------------------------------------------------------------- modes */
+
+const segments = { length: el('seg-length'), difficulty: el('seg-difficulty') };
+let draft = { ...DEFAULT_PREFS };
+
+function paintModeSheet() {
+  for (const [key, group] of Object.entries(segments)) {
+    for (const button of group.children) {
+      button.setAttribute('aria-pressed', String(button.dataset.value === draft[key]));
+    }
+  }
+  el('mode-note').textContent = MODES[draft.difficulty].note;
+}
+
+function openModes() {
+  draft = { ...view.prefs };
+  paintModeSheet();
+  el('mode-dialog').showModal();
+}
+
+for (const [key, group] of Object.entries(segments)) {
+  group.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-value]');
+    if (!button) return;
+    draft[key] = button.dataset.value;
+    paintModeSheet();
+  });
+}
+
+el('start-btn').addEventListener('click', () => {
+  el('mode-dialog').close();
+  startPractice({ ...draft });
+});
+
 /* ---------------------------------------------------------------- theme */
 
-const THEME_KEY = 'cinch:theme';
+const THEME_KEY = 'hangdle:theme';
 const THEME_COLOR = { light: '#f5f1e9', dark: '#0d0f13' };
 const prefersLight = matchMedia('(prefers-color-scheme: light)');
 
@@ -555,8 +662,8 @@ for (const [selector, value] of [
 }
 
 // First visit gets the rules unprompted — the two-track scoring needs explaining.
-if (!readRaw('cinch:seen')) {
-  writeRaw('cinch:seen', '1');
+if (!readRaw('hangdle:seen')) {
+  writeRaw('hangdle:seen', '1');
   el('help-dialog').showModal();
 }
 

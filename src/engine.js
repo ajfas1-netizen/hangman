@@ -1,5 +1,5 @@
 /**
- * Cinch — game engine.
+ * Hangdle — game engine.
  *
  * A guess is a (letter, slot) pair. Three outcomes:
  *

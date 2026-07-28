@@ -201,3 +201,20 @@ test('case and whitespace are forgiven', () => {
   assert.equal(guess(g, 'S', 0).result, HIT);
   assert.equal(solve(g, '  SpOoN  ').result, 'solved');
 });
+
+test('a limitless game can never be lost', () => {
+  const g = createGame('spoon', { maxMisses: Infinity, maxNears: Infinity });
+  for (const ch of 'zqxjkvwbcdfg') guess(g, ch, 1);
+  assert.ok(g.misses > MAX_MISSES);
+  assert.equal(g.status, PLAYING);
+
+  // Winning still works normally.
+  [...'spoon'].forEach((ch, i) => guess(g, ch, i));
+  assert.equal(g.status, WON);
+});
+
+test('a limitless game still reports life remaining as infinite', () => {
+  const g = createGame('spoon', { maxMisses: Infinity, maxNears: Infinity });
+  guess(g, 'z', 0);
+  assert.equal(lifeRemaining(g).misses, Infinity);
+});

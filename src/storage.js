@@ -9,8 +9,8 @@ import { PLAYING, MAX_MISSES, MAX_NEARS, SOLVE_PENALTY } from './engine.js';
 /** Fallback for games saved before limits were stored alongside them. */
 const DEFAULT_LIMITS = { maxMisses: MAX_MISSES, maxNears: MAX_NEARS, solvePenalty: SOLVE_PENALTY };
 
-const GAME_KEY = 'cinch:daily';
-const STATS_KEY = 'cinch:stats';
+const GAME_KEY = 'hangdle:daily';
+const STATS_KEY = 'hangdle:stats';
 
 const EMPTY_STATS = {
   played: 0,

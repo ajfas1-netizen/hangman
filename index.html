@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Hangman crossed with Wordle. Guess the letter — and the slot it sits in.">
 <meta name="theme-color" content="#0d0f13">
-<title>Cinch</title>
+<title>Hangdle</title>
 <link rel="stylesheet" href="styles.css">
 <script>
   /* Runs before first paint so the page never flashes the wrong theme.
@@ -14,7 +14,7 @@
   (function () {
     var root = document.documentElement, host = root.dataset.theme, theme;
     var stored = null;
-    try { stored = localStorage.getItem('cinch:theme'); } catch (e) { /* private window */ }
+    try { stored = localStorage.getItem('hangdle:theme'); } catch (e) { /* private window */ }
 
     if (stored === 'light' || stored === 'dark') theme = stored;
     else if (host === 'light' || host === 'dark') theme = host;
@@ -37,7 +37,7 @@
     </svg>
   </button>
 
-  <h1 class="wordmark">Cinch</h1>
+  <h1 class="wordmark">Hangdle</h1>
 
   <div class="topbar-right">
     <button class="icon-btn" id="theme-btn" aria-label="Switch theme" title="Switch theme">
@@ -157,8 +157,9 @@
 
     <div class="actions">
       <button class="ghost-btn" id="solve-btn">Call the word</button>
-      <button class="ghost-btn" id="practice-btn">Practice word</button>
-      <button class="ghost-btn" id="daily-btn" hidden>Back to today's</button>
+      <button class="ghost-btn" id="result-btn" hidden>See result</button>
+      <button class="ghost-btn" id="new-btn">New game</button>
+      <button class="ghost-btn" id="daily-btn" hidden>Today's puzzle</button>
     </div>
   </section>
 
@@ -185,6 +186,9 @@
 
   <h3>Calling the word</h3>
   <p>Think you've got it? Call the whole word. Right wins on the spot. Wrong costs <strong><span data-solve-penalty>2</span> body parts</strong>.</p>
+
+  <h3>Modes</h3>
+  <p>The daily is always Normal. <strong>New game</strong> lets you pick a length and a mode: <strong>Hard</strong> shortens the rope to four, so near misses bite sooner; <strong>Zen</strong> removes both limits entirely — nothing can kill you, so you can just work the word out.</p>
 
   <h3>Reading the board</h3>
   <p>The keyboard tracks what you know about each letter overall. Each slot tracks what you've ruled out <em>for that slot</em> — select a slot to see its eliminations.</p>
@@ -213,7 +217,41 @@
   <pre class="grid" id="end-grid"></pre>
   <div class="end-actions">
     <button class="primary-btn" id="share-btn">Share result</button>
-    <button class="ghost-btn" id="again-btn">Practice word</button>
+    <button class="ghost-btn" id="again-btn">Play again</button>
+    <button class="ghost-btn" id="home-btn" hidden>Today's puzzle</button>
+  </div>
+</dialog>
+
+<dialog class="sheet narrow" id="mode-dialog">
+  <button class="close-btn" data-close aria-label="Close">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <h2>New game</h2>
+
+  <div class="field">
+    <span class="field-label" id="length-label">Word length</span>
+    <div class="seg" id="seg-length" role="group" aria-labelledby="length-label">
+      <button type="button" data-value="any">Any</button>
+      <button type="button" data-value="5">5</button>
+      <button type="button" data-value="6">6</button>
+      <button type="button" data-value="7">7</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <span class="field-label" id="difficulty-label">Mode</span>
+    <div class="seg" id="seg-difficulty" role="group" aria-labelledby="difficulty-label">
+      <button type="button" data-value="normal">Normal</button>
+      <button type="button" data-value="hard">Hard</button>
+      <button type="button" data-value="zen">Zen</button>
+    </div>
+  </div>
+
+  <p class="mode-note" id="mode-note"></p>
+
+  <div class="end-actions">
+    <button class="primary-btn" id="start-btn">Start</button>
+    <button class="ghost-btn" data-close>Cancel</button>
   </div>
 </dialog>
 

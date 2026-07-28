@@ -1,8 +1,8 @@
-# Cinch
+# Hangdle
 
 Hangman crossed with Wordle. You don't just guess the letter — you guess **which slot it sits in**.
 
-Named for what a near miss does: you knew the letter, you put it in the wrong place, and the rope draws a notch tighter. The other meaning is a joke at the player's expense.
+Hangman plus Wordle, in the name as well as the rules.
 
 Play: `npm start`, then open http://localhost:8080. No build step, no dependencies, no backend.
 
@@ -66,7 +66,21 @@ Arrow keys move between empty slots, Backspace clears the pending letter, and cl
 
 One word a day, the same for everyone, derived from the local date — so it flips at your midnight, not UTC's. Length ramps through the week: five letters early, seven by the weekend.
 
-An in-progress daily survives a refresh. Practice mode gives unlimited random words and doesn't touch your stats.
+An in-progress daily survives a refresh. Practice gives unlimited random words and never touches your stats.
+
+## Modes
+
+The daily is always Normal, so everyone plays the same puzzle under the same rules. **New game** picks a word length (any, 5, 6 or 7) and a mode:
+
+| | |
+|---|---|
+| **Normal** | Six body parts, five rope notches — the daily setting. |
+| **Hard** | Six body parts, four rope notches. Near misses bite sooner and the rope does most of the killing (measured: a strong bot drops from 90% to 81%). |
+| **Zen** | No limits at all. Nothing can kill you, so you can work the placement mechanic out without dying to it. |
+
+Zen hides both meters and never draws the figure — a completed gallows that couldn't kill you would be a lie. Your last choice is remembered.
+
+A finished game always offers the way forward: **See result** reopens the summary, **New game** starts another, and **Today's puzzle** returns to the daily from anywhere.
 
 Results share as an emoji grid that wraps at the word length, so it comes out the same shape as the puzzle. A square's position says nothing about which slot was guessed, so it spoils nothing.
 

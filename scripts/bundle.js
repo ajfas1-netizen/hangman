@@ -1,5 +1,5 @@
 /**
- * Builds the whole game into one self-contained HTML file: dist/cinch.html.
+ * Builds the whole game into one self-contained HTML file: dist/hangdle.html.
  *
  *   node scripts/bundle.js
  *
@@ -58,7 +58,7 @@ const js = ORDER.map((file) => `/* ---- ${file} ---- */\n${flatten(read(file))}`
    without the wrapper. The <style> and the pre-paint theme script still work
    from inside the body. */
 if (process.argv.includes('--fragment')) {
-  const fragment = `<title>Cinch</title>
+  const fragment = `<title>Hangdle</title>
 <style>
 ${css}
 </style>
@@ -71,8 +71,8 @@ ${js}
 </script>
 `;
   mkdirSync(join(root, 'dist'), { recursive: true });
-  writeFileSync(join(root, 'dist', 'cinch.fragment.html'), fragment);
-  console.log(`dist/cinch.fragment.html — ${(fragment.length / 1024).toFixed(0)} KB`);
+  writeFileSync(join(root, 'dist', 'hangdle.fragment.html'), fragment);
+  console.log(`dist/hangdle.fragment.html — ${(fragment.length / 1024).toFixed(0)} KB`);
   process.exit(0);
 }
 
@@ -83,7 +83,7 @@ const out = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Hangman crossed with Wordle. Guess the letter — and the slot it sits in.">
 <meta name="theme-color" content="#0d0f13">
-<title>Cinch</title>
+<title>Hangdle</title>
 <style>
 ${css}
 </style>
@@ -100,5 +100,5 @@ ${js}
 `;
 
 mkdirSync(join(root, 'dist'), { recursive: true });
-writeFileSync(join(root, 'dist', 'cinch.html'), out);
-console.log(`dist/cinch.html — ${(out.length / 1024).toFixed(0)} KB`);
+writeFileSync(join(root, 'dist', 'hangdle.html'), out);
+console.log(`dist/hangdle.html — ${(out.length / 1024).toFixed(0)} KB`);
